@@ -11,12 +11,13 @@ class MDP():
         self.prob_right_veer = prob_right_veer
         self.prob_fail = prob_fail
         self.board = board
+        self.dimensions = board.dimensions
 
     def getInitialState(self):
         return (0, 0)
     
     def isTerminalState(self, state):
-        return GetStateNumber(state[0], state[1]) == 23
+        return GetStateNumber(state[0], state[1], self.dimensions) == 23
 
     def getActionFromPolicy(self, state):
         pass
