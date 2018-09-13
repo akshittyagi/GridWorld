@@ -1,4 +1,4 @@
-from enum import Enums
+from enum import Enum
 
 class Cells(Enum):
     Regular = 0
