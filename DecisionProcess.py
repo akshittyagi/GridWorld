@@ -1,5 +1,7 @@
 import os
 import random
+import pickle as pkl
+import csv
 from enum import Enum
 
 from util import ActionSpace, GetStateNumber, Cells
@@ -23,9 +25,9 @@ class MDP():
     def isTerminalState(self, state):
         return GetStateNumber(state[0], state[1], self.dimensions) == 23
 
-    def getActionFromPolicy(self, state, policy=0):
+    def getActionFromPolicy(self, state, policy='uniform'):
         #TODO: Add other options for policies
-        if policy is 0:
+        if policy is 'uniform':
             '''
             Random Action Policy
             '''
@@ -68,9 +70,9 @@ class MDP():
         return effect, proba
 
     def TransitionFunction(self, state, action):
-        print "Coming with ACTION: ", self.actionSpace[action], " and at STATE: ", state[0], state[1]
+        # print "Coming with ACTION: ", self.actionSpace[action], " and at STATE: ", state[0], state[1]
         effect, proba = self.rollTheDice()
-        print "Effect and Probability val: ", effect, proba
+        # print "Effect and Probability val: ", effect, proba
         action = self.affectWithProbability(action, effect)
         tempState = [state[0],state[1]]
         if action == "up":
@@ -82,21 +84,22 @@ class MDP():
         elif action == "left":
             tempState[1] -= 1
         elif action == "stay":
-            print "Choosing to stay because of failure"
+            action = 'stay'
+            # print "Choosing to stay because of failure"
         else:
-            print "Invalid Action"
+            # print "Invalid Action"
             return state
         
         if self.isValid(tempState):
-            print "Action chosen: ", action
+            # print "Action chosen: ", action
             return tempState
         else:
-            print action, " Transitioning to Invalid state, choosing to STAY"
+            # print action, " Transitioning to Invalid state, choosing to STAY"
             return state
 
     def printBoard(self, state, stateCounter=-1, reward=-1):
-        print "\nSTATE: ", stateCounter
-        print "----------------"
+        # print "\nSTATE: ", stateCounter
+        # print "----------------"
         for i in range(self.dimensions):
             currentRow = ""
             for j in range(self.dimensions):
@@ -111,9 +114,9 @@ class MDP():
                 elif self.board.grid[i][j] == Cells.End:
                     currentRow += " [] "
             print currentRow
-        if reward != -1:
-            print "REWARD incurred: ", reward
-        print "----------------\n"
+        # if reward != -1:
+        #     print "REWARD incurred: ", reward
+        # print "----------------\n"
 
     def RewardFunction(self, s_t, a_t, s_t_1, time_step=0):
         reward = 0
@@ -125,25 +128,43 @@ class MDP():
             reward += 10*(self.gamma**time_step)
         return reward
 
-    def runEpisode(self):
+    def runEpisode(self, policy='uniform'):
         s_t = self.getInitialState()
         incurredReward = 0
         stateCounter = 0
         while(not self.isTerminalState(s_t)):
-            self.printBoard(s_t, stateCounter, incurredReward)
-            a_t = self.getActionFromPolicy(s_t)
+            # self.printBoard(s_t, stateCounter, incurredReward)
+            a_t = self.getActionFromPolicy(s_t, policy='uniform')
             s_t_1 = self.TransitionFunction(s_t, a_t)
             r_t = self.RewardFunction(s_t, a_t, s_t_1, stateCounter)
             s_t = s_t_1
             incurredReward += r_t
             stateCounter += 1
-        self.printBoard(s_t, stateCounter, incurredReward)
-    
-    def learnPolicy(self):
-        #TODO: Add policy learning
-        pass
+            # print "Reward: ", incurredReward
+        # self.printBoard(s_t, stateCounter, incurredReward)
+        print "Total Reward: ", incurredReward
+        return incurredReward
 
+    def dumpData(self, data, policy):
+        pkl.dump(data, open(str(len(data))+"_Episodes_"+policy+".pkl", 'w'))
+        with open(str(len(data))+"_Episodes_"+policy+".csv", 'w') as data_file:
+            csv_writer = csv.writer(data_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            for idx, val in enumerate(data):
+                csv_writer.writerow([str(idx+1), str(val)])
+        print "Saving dump to: ", str(len(data))+"_Episodes_"+policy+".csv"
+    
+    def learnPolicy(self, num_episodes=100, policy="uniform"):
+        #TODO: Add policy learning
+        data = []
+        for episode in range(num_episodes):
+            print "At episode: ", episode
+            reward = self.runEpisode(policy)
+            data.append(reward)
+        
+        self.dumpData(data, policy)
+    
+        
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.runEpisode()
+    mdp.learnPolicy(num_episodes=10000, policy='uniform')
