@@ -64,22 +64,22 @@ class MDP():
             effect = "veer right"
         elif proba >= 91:
             effect = "stay"
-        return effect
+        return effect, proba
 
     def TransitionFunction(self, state, action):
         print "Coming with ACTION: ", self.actionSpace[action], " and at STATE: ", state[0], state[1]
-        effect = self.rollTheDice()
-        print "Probability val: ", effect
+        effect, proba = self.rollTheDice()
+        print "Effect and Probability val: ", effect, proba
         action = self.affectWithProbability(action, effect)
         tempState = [state[0],state[1]]
         if action == "up":
-            tempState[1] -= 1
-        elif action == "down":
-            tempState[1] += 1
-        elif action == "right":
-            tempState[0] += 1
-        elif action == "left":
             tempState[0] -= 1
+        elif action == "down":
+            tempState[0] += 1
+        elif action == "right":
+            tempState[1] += 1
+        elif action == "left":
+            tempState[1] -= 1
         elif action == "stay":
             print "Choosing to stay because of failure"
         else:
@@ -93,8 +93,9 @@ class MDP():
             print action, " Transitioning to Invalid state, choosing to STAY"
             return state
 
-    def printBoard(self, state):
-        print "\n----------------"
+    def printBoard(self, state, stateCounter=-1):
+        print "\nSTATE: ", stateCounter
+        print "----------------"
         for i in range(self.dimensions):
             currentRow = ""
             for j in range(self.dimensions):
@@ -116,13 +117,15 @@ class MDP():
 
     def runEpisode(self):
         s_t = self.getInitialState()
+        stateCounter = 0
         while(not self.isTerminalState(s_t)):
-            self.printBoard(s_t)
+            self.printBoard(s_t, stateCounter)
             a_t = self.getActionFromPolicy(s_t)
             s_t_1 = self.TransitionFunction(s_t, a_t)
             r_t = self.RewardFunction(s_t, a_t, s_t_1)
             s_t = s_t_1
-        self.printBoard(s_t)
+            stateCounter += 1
+        self.printBoard(s_t, stateCounter)
     
     def learnPolicy(self):
         #TODO: Add policy learning
