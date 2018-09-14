@@ -26,14 +26,14 @@ class MDP():
     def getActionFromPolicy(self, state, policy=0):
         #TODO: Add other options for policies
         if policy is 0:
-            #Random Action Policy
+            '''
+            Random Action Policy
+            '''
             actionNumber = random.randint(1,4)
-            # action = self.actionSpace[actionNumber]
-            action = actionNumber
-            return action
+            return actionNumber
 
     def isValid(self, state):
-        if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0):
+        if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
             return True
         return False
 
@@ -94,7 +94,7 @@ class MDP():
             print action, " Transitioning to Invalid state, choosing to STAY"
             return state
 
-    def printBoard(self, state, stateCounter=-1):
+    def printBoard(self, state, stateCounter=-1, reward=-1):
         print "\nSTATE: ", stateCounter
         print "----------------"
         for i in range(self.dimensions):
@@ -111,22 +111,33 @@ class MDP():
                 elif self.board.grid[i][j] == Cells.End:
                     currentRow += " [] "
             print currentRow
+        if reward != -1:
+            print "REWARD incurred: ", reward
         print "----------------\n"
 
-    def RewardFunction(self, s_t, a_t, s_t_1):
-        pass 
+    def RewardFunction(self, s_t, a_t, s_t_1, time_step=0):
+        reward = 0
+        before = GetStateNumber(s_t[0], s_t[1], self.dimensions)
+        after = GetStateNumber(s_t_1[0], s_t_1[1], self.dimensions)
+        if before == after and before == 21:
+            reward -= 10*(self.gamma**time_step)
+        elif self.isTerminalState(s_t_1):
+            reward += 10*(self.gamma**time_step)
+        return reward
 
     def runEpisode(self):
         s_t = self.getInitialState()
+        incurredReward = 0
         stateCounter = 0
         while(not self.isTerminalState(s_t)):
-            self.printBoard(s_t, stateCounter)
+            self.printBoard(s_t, stateCounter, incurredReward)
             a_t = self.getActionFromPolicy(s_t)
             s_t_1 = self.TransitionFunction(s_t, a_t)
-            r_t = self.RewardFunction(s_t, a_t, s_t_1)
+            r_t = self.RewardFunction(s_t, a_t, s_t_1, stateCounter)
             s_t = s_t_1
+            incurredReward += r_t
             stateCounter += 1
-        self.printBoard(s_t, stateCounter)
+        self.printBoard(s_t, stateCounter, incurredReward)
     
     def learnPolicy(self):
         #TODO: Add policy learning
