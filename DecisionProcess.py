@@ -54,6 +54,7 @@ class MDP():
             return self.actionSpace[5]
 
     def rollTheDice(self):
+        #TODO: Change probability handler to floats in (0,1)
         proba = random.randint(1,100)
         effect = ""
         if proba <= 80:
