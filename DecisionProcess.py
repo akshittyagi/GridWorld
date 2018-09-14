@@ -7,14 +7,15 @@ from Board import Board
 
 class MDP():
     
-    def __init__(self, board, prob_succ, prob_left_veer, prob_right_veer, prob_fail):
+    def __init__(self, board, prob_succ, prob_left_veer, prob_right_veer, prob_fail, gamma):
         self.prob_succ = prob_succ
         self.prob_left_veer = prob_left_veer
         self.prob_right_veer = prob_right_veer
         self.prob_fail = prob_fail
         self.board = board
         self.dimensions = board.dimensions
-        self.actionSpace = {1:"up", 2:"down", 3:"left", 4:"right"}
+        self.actionSpace = {1:"up", 2:"right", 3:"down", 4:"left", 5:"stay"}
+        self.gamma = gamma
 
     def getInitialState(self):
         return (0, 0)
@@ -27,7 +28,8 @@ class MDP():
         if policy is 0:
             #Random Action Policy
             actionNumber = random.randint(1,4)
-            action = self.actionSpace[actionNumber]
+            # action = self.actionSpace[actionNumber]
+            action = actionNumber
             return action
 
     def isValid(self, state):
@@ -35,8 +37,40 @@ class MDP():
             return True
         return False
 
+    def affectWithProbability(self, action, effect):
+        if effect == "same":
+            return self.actionSpace[action]
+        elif effect == "veer left":
+            if action == 1:
+                return self.actionSpace[4]
+            else:
+                return self.actionSpace[action - 1]
+        elif effect == "veer right":
+            if action == 4:
+                return self.actionSpace[1]
+            else:
+                return self.actionSpace[action + 1]
+        elif effect == "stay":
+            return self.actionSpace[5]
+
+    def rollTheDice(self):
+        proba = random.randint(1,100)
+        effect = ""
+        if proba <= 80:
+            effect = "same"
+        elif proba >= 81 and proba <= 85:
+            effect = "veer left"
+        elif proba >= 86 and proba <= 90:
+            effect = "veer right"
+        elif proba >= 91:
+            effect = "stay"
+        return effect
+
     def TransitionFunction(self, state, action):
-        #TODO: Add probabilities for veering and failure
+        print "Coming with ACTION: ", self.actionSpace[action], " and at STATE: ", state[0], state[1]
+        effect = self.rollTheDice()
+        print "Probability val: ", effect
+        action = self.affectWithProbability(action, effect)
         tempState = [state[0],state[1]]
         if action == "up":
             tempState[1] -= 1
@@ -46,6 +80,8 @@ class MDP():
             tempState[0] += 1
         elif action == "left":
             tempState[0] -= 1
+        elif action == "stay":
+            print "Choosing to stay because of failure"
         else:
             print "Invalid Action"
             return state
@@ -54,11 +90,11 @@ class MDP():
             print "Action chosen: ", action
             return tempState
         else:
-            print "Transitioning to Invalid state, choosing to STAY"
+            print action, " Transitioning to Invalid state, choosing to STAY"
             return state
 
     def printBoard(self, state):
-        print "----------------"
+        print "\n----------------"
         for i in range(self.dimensions):
             currentRow = ""
             for j in range(self.dimensions):
@@ -73,7 +109,7 @@ class MDP():
                 elif self.board.grid[i][j] == Cells.End:
                     currentRow += " [] "
             print currentRow
-        print "----------------"
+        print "----------------\n"
 
     def RewardFunction(self, s_t, a_t, s_t_1):
         pass 
@@ -94,5 +130,5 @@ class MDP():
 
 if __name__ == "__main__":
     board = Board(5)
-    mdp = MDP(board, 0.8, 0.05, 0.05, 0.1)
+    mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
     mdp.runEpisode()
