@@ -4,7 +4,7 @@ run_debug:
 	python DecisionProcess.py > debugFile
 clean:
 	rm *.pyc
-clean:
+clean_all:
 	rm *.csv
 	rm *.pkl
 	rm *.pyc
