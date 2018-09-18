@@ -20,7 +20,7 @@ class MDP():
         self.gamma = gamma
 
     def getInitialState(self):
-        return (3, 4)
+        return (0, 0)
     
     def isTerminalState(self, state):
         return GetStateNumber(state[0], state[1], self.dimensions) == 23
@@ -138,10 +138,10 @@ class MDP():
             a_t = self.getActionFromPolicy(s_t, policy='uniform')
             s_t_1 = self.TransitionFunction(s_t, a_t)
             r_t = self.RewardFunction(s_t, a_t, s_t_1, stateCounter)
-            if stateCounter == 0 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 18:
+            if stateCounter == 8 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 18:
                 simulation_statistics[0] += 1
                 history = True
-            if stateCounter == 11 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 21:
+            if stateCounter == 19 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 21:
                 simulation_statistics[1] += 1
                 if history == True:
                     simulation_statistics[2] += 1
