@@ -20,7 +20,7 @@ class MDP():
         self.gamma = gamma
 
     def getInitialState(self):
-        return (0, 0)
+        return (3, 4)
     
     def isTerminalState(self, state):
         return GetStateNumber(state[0], state[1], self.dimensions) == 23
@@ -128,22 +128,31 @@ class MDP():
             reward += 10*(self.gamma**time_step)
         return reward
 
-    def runEpisode(self, policy='uniform'):
+    def runEpisode(self, policy='uniform',simulation_statistics=[]):
         s_t = self.getInitialState()
         incurredReward = 0
         stateCounter = 0
+        history = False
         while(not self.isTerminalState(s_t)):
             # self.printBoard(s_t, stateCounter, incurredReward)
             a_t = self.getActionFromPolicy(s_t, policy='uniform')
             s_t_1 = self.TransitionFunction(s_t, a_t)
             r_t = self.RewardFunction(s_t, a_t, s_t_1, stateCounter)
+            if stateCounter == 0 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 18:
+                simulation_statistics[0] += 1
+                history = True
+            if stateCounter == 11 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 21:
+                simulation_statistics[1] += 1
+                if history == True:
+                    simulation_statistics[2] += 1
+                    history = False
             s_t = s_t_1
             incurredReward += r_t
             stateCounter += 1
             # print "Reward: ", incurredReward
         # self.printBoard(s_t, stateCounter, incurredReward)
         print "Total Reward: ", incurredReward
-        return incurredReward
+        return incurredReward, simulation_statistics
 
     def dumpData(self, data, policy):
         pkl.dump(data, open(str(len(data))+"_Episodes_"+policy+".pkl", 'w'))
@@ -156,15 +165,18 @@ class MDP():
     def learnPolicy(self, num_episodes=100, policy="uniform"):
         #TODO: Add policy learning
         data = []
+        simulation_statistics = [0]*3
         for episode in range(num_episodes):
             print "At episode: ", episode
-            reward = self.runEpisode(policy)
+            reward, simulation_statistics = self.runEpisode(policy,simulation_statistics=simulation_statistics)
             data.append(reward)
-        
+        print "Pr(S_8=18)", 1.0*simulation_statistics[0] / num_episodes
+        print "Pr(S_19=21)", 1.0*simulation_statistics[1] / num_episodes
+        print "Pr(S_19=21|S_8=18)", 1.0*simulation_statistics[2] / simulation_statistics[0] 
         self.dumpData(data, policy)
     
         
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.learnPolicy(num_episodes=10000, policy='uniform')
+    mdp.learnPolicy(num_episodes=500000, policy='uniform')
