@@ -1,9 +1,11 @@
 import os
+import sys
 import random
 import pickle as pkl
 import csv
 from enum import Enum
 
+import numpy as np
 from util import ActionSpace, GetStateNumber, Cells
 from Board import Board
 
@@ -33,6 +35,29 @@ class MDP():
             '''
             actionNumber = random.randint(1,4)
             return actionNumber
+        elif policy is 'optimal1':
+            '''
+            Hand fashioned optimal Policy
+            '''
+            s_t = GetStateNumber(state[0], state[1], self.dimensions)
+            rightSet = [1,2,3,4,6,7,8,9,17,19,20,21,22]
+            downSet = [5,10,13,14,15,16,18]
+            upSet = [11,12]
+            if s_t in rightSet:
+                #Go right
+                return 2
+            elif s_t in downSet:
+                #Go down
+                return 3
+            elif s_t in upSet:
+                #Go up
+                return 1
+            elif self.isValid(state):
+                print "State, Action mapping missing"
+                return 5
+            else:
+                print "Returning random Action"
+                return random.randint(1,4)
 
     def isValid(self, state):
         if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
@@ -56,7 +81,7 @@ class MDP():
             return self.actionSpace[5]
 
     def rollTheDice(self):
-        #TODO: Change probability handler to floats in (0,1)
+        # TODO: Change probability handler to floats in (0,1)
         proba = random.randint(1,100)
         effect = ""
         if proba <= 80:
@@ -119,6 +144,9 @@ class MDP():
         # print "----------------\n"
 
     def RewardFunction(self, s_t, a_t, s_t_1, time_step=0):
+        '''
+        Reward for taking action a_t in state s_t to get into state s_t_1
+        '''
         reward = 0
         before = GetStateNumber(s_t[0], s_t[1], self.dimensions)
         after = GetStateNumber(s_t_1[0], s_t_1[1], self.dimensions)
@@ -162,21 +190,38 @@ class MDP():
                 csv_writer.writerow([str(idx+1), str(val)])
         print "Saving dump to: ", str(len(data))+"_Episodes_"+policy+".csv"
     
-    def learnPolicy(self, num_episodes=100, policy="uniform"):
+    def learnPolicy(self, num_episodes=100, policy="uniform",plain_text_save=True):
         #TODO: Add policy learning
         data = []
         simulation_statistics = [0]*3
+        total_reward = 0
         for episode in range(num_episodes):
             print "At episode: ", episode
             reward, simulation_statistics = self.runEpisode(policy,simulation_statistics=simulation_statistics)
+            total_reward += reward
             data.append(reward)
-        print "Pr(S_8=18)", 1.0*simulation_statistics[0] / num_episodes
-        print "Pr(S_19=21)", 1.0*simulation_statistics[1] / num_episodes
-        print "Pr(S_19=21|S_8=18)", 1.0*simulation_statistics[2] / simulation_statistics[0] 
+        if plain_text_save:
+            file_writer = open(str(len(data))+"_Episodes_"+policy+".txt", 'w')
+        file_str = ""
+        file_str += "\n----------------------------"
+        file_str += "\nAverage Reward= " +  str(total_reward*1.0/num_episodes)
+        file_str += "\nMax Reward= " + str(max(data))
+        file_str += "\nMin Reward= " + str(min(data))
+        stddev = np.array(data) - (total_reward*1.0/num_episodes)
+        stddev = stddev**2
+        file_str += "\nStddev Reward= " + str(np.sqrt(np.sum(stddev))/len(stddev))
+        file_str += "\nPr(S_8=18)= " + str(1.0*simulation_statistics[0] / num_episodes)
+        file_str += "\nPr(S_19=21)= " + str(1.0*simulation_statistics[1] / num_episodes)
+        file_str += "\nPr(S_19=21|S_8=18)= " + str(1.0*simulation_statistics[2] / simulation_statistics[0]) 
+        file_str += "\n----------------------------"
+        print file_str
+        if plain_text_save:
+            file_writer.write(file_str)
+            print "Saving plain text stats to: ", str(len(data))+"_Episodes_"+policy+".txt"
         self.dumpData(data, policy)
     
         
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.learnPolicy(num_episodes=500000, policy='uniform')
+    mdp.learnPolicy(num_episodes=10000, policy='optimal1')
