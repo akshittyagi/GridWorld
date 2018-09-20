@@ -250,4 +250,4 @@ class MDP():
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.learnPolicy(num_episodes=10000, policy='optimal1')
+    mdp.learnPolicy(num_episodes=500000, policy='optimal1')
