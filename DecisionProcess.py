@@ -58,7 +58,34 @@ class MDP():
             else:
                 print "Returning random Action"
                 return random.randint(1,4)
-
+        elif policy is 'optimal2':
+            '''
+            Hand fashioned optimal Policy
+            '''
+            s_t = GetStateNumber(state[0], state[1], self.dimensions)
+            rightSet = [1,2,3,4,6,7,8,9,17,19,20,21,22]
+            downSet = [5,10,13,14,18]
+            upSet = [15,16,11,12]
+            if s_t in rightSet:
+                #Go right
+                return 2
+            elif s_t in downSet:
+                #Go down
+                return 3
+            elif s_t in upSet:
+                #Go up
+                return 1
+            elif self.isValid(state):
+                print "State, Action mapping missing"
+                return 5
+            else:
+                print "Returning random Action"
+                return random.randint(1,4)
+        elif policy is 'goRight':
+            return 2
+        elif policy is 'stayOnly':
+            return 5
+        
     def isValid(self, state):
         if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
             return True
@@ -179,7 +206,7 @@ class MDP():
             stateCounter += 1
             # print "Reward: ", incurredReward
         # self.printBoard(s_t, stateCounter, incurredReward)
-        print "Total Reward: ", incurredReward
+        # print "Total Reward: ", incurredReward
         return incurredReward, simulation_statistics
 
     def dumpData(self, data, policy):
@@ -191,12 +218,12 @@ class MDP():
         print "Saving dump to: ", str(len(data))+"_Episodes_"+policy+".csv"
     
     def learnPolicy(self, num_episodes=100, policy="uniform",plain_text_save=True):
-        #TODO: Add policy learning
+        print "USING POLICY: ", policy
         data = []
         simulation_statistics = [0]*3
         total_reward = 0
         for episode in range(num_episodes):
-            print "At episode: ", episode
+            # print "At episode: ", episode
             reward, simulation_statistics = self.runEpisode(policy,simulation_statistics=simulation_statistics)
             total_reward += reward
             data.append(reward)
@@ -224,4 +251,4 @@ class MDP():
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.learnPolicy(num_episodes=10000, policy='optimal1')
+    mdp.learnPolicy(num_episodes=10000, policy='goRight')
