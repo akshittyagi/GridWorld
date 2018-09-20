@@ -1,5 +1,5 @@
 run:
-	python DecisionProcess.py
+	python DecisionProcess.py -e $(episodes) -p $(policy)
 run_debug:
 	python DecisionProcess.py > debugFile
 clean:

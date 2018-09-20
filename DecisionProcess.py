@@ -1,6 +1,7 @@
 import os
 import sys
 import random
+import argparse
 import pickle as pkl
 import csv
 from enum import Enum
@@ -29,13 +30,13 @@ class MDP():
 
     def getActionFromPolicy(self, state, policy='uniform'):
         #TODO: Add other options for policies
-        if policy is 'uniform':
+        if policy == 'uniform':
             '''
             Random Action Policy
             '''
             actionNumber = random.randint(1,4)
             return actionNumber
-        elif policy is 'optimal1':
+        elif policy == 'optimal1':
             '''
             Hand fashioned optimal Policy
             '''
@@ -58,7 +59,7 @@ class MDP():
             else:
                 print "Returning random Action"
                 return random.randint(1,4)
-        elif policy is 'optimal2':
+        elif policy == 'optimal2':
             '''
             Hand fashioned optimal Policy
             '''
@@ -81,7 +82,7 @@ class MDP():
             else:
                 print "Returning random Action"
                 return random.randint(1,4)
-        elif policy is 'goRight':
+        elif policy == 'goRight':
             return 2
         
     def isValid(self, state):
@@ -204,7 +205,7 @@ class MDP():
             stateCounter += 1
         #     print "Reward: ", incurredReward
         # self.printBoard(s_t, stateCounter, incurredReward)
-        print "Total Reward: ", incurredReward
+        # print "Total Reward: ", incurredReward
         return incurredReward, simulation_statistics
 
     def dumpData(self, data, policy):
@@ -221,10 +222,12 @@ class MDP():
         simulation_statistics = [0]*3
         total_reward = 0
         for episode in range(num_episodes):
-            print "At episode: ", episode
             reward, simulation_statistics = self.runEpisode(policy,simulation_statistics=simulation_statistics)
             total_reward += reward
             data.append(reward)
+            if episode % 1000 == 0:
+                print "At episode: ", episode
+                print "Reward: ", reward
         if plain_text_save:
             file_writer = open(str(len(data))+"_Episodes_"+policy+".txt", 'w')
         file_str = ""
@@ -248,6 +251,10 @@ class MDP():
     
         
 if __name__ == "__main__":
+    args = argparse.ArgumentParser(description="Parsing Arguments for running RL Simulations")
+    args.add_argument('-e', '--num_episodes', type=int, help='Number of Episodes')
+    args.add_argument('-p', '--policy', type=str, help='Policy Type: uniform, optimal1, optimal2, goRight')
+    args = args.parse_args()
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.learnPolicy(num_episodes=10000, policy='optimal2')
+    mdp.learnPolicy(num_episodes=args.num_episodes, policy=args.policy)
