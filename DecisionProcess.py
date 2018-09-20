@@ -40,8 +40,8 @@ class MDP():
             Hand fashioned optimal Policy
             '''
             s_t = GetStateNumber(state[0], state[1], self.dimensions)
-            rightSet = [1,2,3,4,6,7,8,9,17,19,20,21,22]
-            downSet = [5,10,13,14,15,16,18]
+            rightSet = [1,2,3,4,6,7,8,9,13,17,19,20,21,22]
+            downSet = [5,10,14,15,16,18]
             upSet = [11,12]
             if s_t in rightSet:
                 #Go right
@@ -63,8 +63,8 @@ class MDP():
             Hand fashioned optimal Policy
             '''
             s_t = GetStateNumber(state[0], state[1], self.dimensions)
-            rightSet = [1,2,3,4,6,7,8,9,17,19,20,21,22]
-            downSet = [5,10,13,14,18]
+            rightSet = [1,2,3,4,6,7,8,9,19,20,21,22]
+            downSet = [5,10,14,15,13,17,16,18]
             upSet = [15,16,11,12]
             if s_t in rightSet:
                 #Go right
@@ -250,4 +250,4 @@ class MDP():
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.learnPolicy(num_episodes=500000, policy='optimal1')
+    mdp.learnPolicy(num_episodes=10000, policy='optimal2')
