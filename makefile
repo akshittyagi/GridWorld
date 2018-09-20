@@ -5,6 +5,7 @@ run_debug:
 clean:
 	rm *.pyc
 clean_all:
+	rm *.txt
 	rm *.csv
 	rm *.pkl
 	rm *.pyc
