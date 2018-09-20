@@ -83,8 +83,6 @@ class MDP():
                 return random.randint(1,4)
         elif policy is 'goRight':
             return 2
-        elif policy is 'stayOnly':
-            return 5
         
     def isValid(self, state):
         if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
@@ -122,7 +120,7 @@ class MDP():
         return effect, proba
 
     def TransitionFunction(self, state, action):
-        # print "Coming with ACTION: ", self.actionSpace[action], " and at STATE: ", state[0], state[1]
+        # print "Coming with ACTION: ", self.actionSpace[action], " and at STATE: ", state[0], state[1], " STATE NUMBER ", GetStateNumber(state[0], state[1], self.dimensions)
         effect, proba = self.rollTheDice()
         # print "Effect and Probability val: ", effect, proba
         action = self.affectWithProbability(action, effect)
@@ -190,7 +188,7 @@ class MDP():
         history = False
         while(not self.isTerminalState(s_t)):
             # self.printBoard(s_t, stateCounter, incurredReward)
-            a_t = self.getActionFromPolicy(s_t, policy='uniform')
+            a_t = self.getActionFromPolicy(s_t, policy=policy)
             s_t_1 = self.TransitionFunction(s_t, a_t)
             r_t = self.RewardFunction(s_t, a_t, s_t_1, stateCounter)
             if stateCounter == 8 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 18:
@@ -204,9 +202,9 @@ class MDP():
             s_t = s_t_1
             incurredReward += r_t
             stateCounter += 1
-            # print "Reward: ", incurredReward
+        #     print "Reward: ", incurredReward
         # self.printBoard(s_t, stateCounter, incurredReward)
-        # print "Total Reward: ", incurredReward
+        print "Total Reward: ", incurredReward
         return incurredReward, simulation_statistics
 
     def dumpData(self, data, policy):
@@ -215,7 +213,7 @@ class MDP():
             csv_writer = csv.writer(data_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             for idx, val in enumerate(data):
                 csv_writer.writerow([str(idx+1), str(val)])
-        print "Saving dump to: ", str(len(data))+"_Episodes_"+policy+".csv"
+        print "Saving dump to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".csv"
     
     def learnPolicy(self, num_episodes=100, policy="uniform",plain_text_save=True):
         print "USING POLICY: ", policy
@@ -223,7 +221,7 @@ class MDP():
         simulation_statistics = [0]*3
         total_reward = 0
         for episode in range(num_episodes):
-            # print "At episode: ", episode
+            print "At episode: ", episode
             reward, simulation_statistics = self.runEpisode(policy,simulation_statistics=simulation_statistics)
             total_reward += reward
             data.append(reward)
@@ -239,16 +237,17 @@ class MDP():
         file_str += "\nStddev Reward= " + str(np.sqrt(np.sum(stddev))/len(stddev))
         file_str += "\nPr(S_8=18)= " + str(1.0*simulation_statistics[0] / num_episodes)
         file_str += "\nPr(S_19=21)= " + str(1.0*simulation_statistics[1] / num_episodes)
-        file_str += "\nPr(S_19=21|S_8=18)= " + str(1.0*simulation_statistics[2] / simulation_statistics[0]) 
+        if simulation_statistics[0]!=0:
+            file_str += "\nPr(S_19=21|S_8=18)= " + str(1.0*simulation_statistics[2] / simulation_statistics[0]) 
         file_str += "\n----------------------------"
         print file_str
         if plain_text_save:
             file_writer.write(file_str)
-            print "Saving plain text stats to: ", str(len(data))+"_Episodes_"+policy+".txt"
+            print "Saving plain text stats to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".txt"
         self.dumpData(data, policy)
     
         
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.learnPolicy(num_episodes=10000, policy='goRight')
+    mdp.learnPolicy(num_episodes=10000, policy='optimal1')
