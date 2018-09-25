@@ -14,4 +14,7 @@ Policy can take the following values:
 `policy=optimal2`
 `policy=goRight`
 
+To clean the current directory run:
+`make clean_all`
+
 
