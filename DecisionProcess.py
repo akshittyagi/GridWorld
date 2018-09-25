@@ -23,7 +23,7 @@ class MDP():
         self.gamma = gamma
 
     def getInitialState(self, conditional_prob):
-        if conditional_prob:
+        if conditional_prob == "True":
             return (3, 4)
         return (0, 0)
     
@@ -184,11 +184,13 @@ class MDP():
             reward += 10*(self.gamma**time_step)
         return reward
 
-    def runEpisode(self, policy='uniform',simulation_statistics=[], condition=False):
+    def runEpisode(self, policy='uniform',simulation_statistics=[], condition="False"):
         s_t = self.getInitialState(condition)
         incurredReward = 0
         stateCounter = 0
         history = False
+        if condition == "True":
+            policy = 'uniform'
         while(not self.isTerminalState(s_t)):
             # self.printBoard(s_t, stateCounter, incurredReward)
             a_t = self.getActionFromPolicy(s_t, policy=policy)
@@ -218,7 +220,7 @@ class MDP():
                 csv_writer.writerow([str(idx+1), str(val)])
         print "Saving dump to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".csv"
     
-    def learnPolicy(self, num_episodes=100, policy="uniform",plain_text_save=True, condition=False):
+    def learnPolicy(self, num_episodes=100, policy="uniform",plain_text_save=True, condition="False"):
         print "USING POLICY: ", policy
         data = []
         simulation_statistics = [0]*3
@@ -256,7 +258,7 @@ if __name__ == "__main__":
     args = argparse.ArgumentParser(description="Parsing Arguments for running RL Simulations")
     args.add_argument('-e', '--num_episodes', type=int, help='Number of Episodes')
     args.add_argument('-p', '--policy', type=str, help='Policy Type: uniform, optimal1, optimal2, goRight')
-    args.add_argument('-c', '--conditional_prob', type=int, help='True if you want to calculate the conditional probability')
+    args.add_argument('-c', '--conditional_prob', type=str, help='True if you want to calculate the conditional probability')
     args = args.parse_args()
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
