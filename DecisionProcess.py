@@ -22,7 +22,9 @@ class MDP():
         self.actionSpace = {1:"up", 2:"right", 3:"down", 4:"left", 5:"stay"}
         self.gamma = gamma
 
-    def getInitialState(self):
+    def getInitialState(self, conditional_prob):
+        if conditional_prob:
+            return (3, 4)
         return (0, 0)
     
     def isTerminalState(self, state):
@@ -182,8 +184,8 @@ class MDP():
             reward += 10*(self.gamma**time_step)
         return reward
 
-    def runEpisode(self, policy='uniform',simulation_statistics=[]):
-        s_t = self.getInitialState()
+    def runEpisode(self, policy='uniform',simulation_statistics=[], condition=False):
+        s_t = self.getInitialState(condition)
         incurredReward = 0
         stateCounter = 0
         history = False
@@ -192,10 +194,10 @@ class MDP():
             a_t = self.getActionFromPolicy(s_t, policy=policy)
             s_t_1 = self.TransitionFunction(s_t, a_t)
             r_t = self.RewardFunction(s_t, a_t, s_t_1, stateCounter)
-            if stateCounter == 8 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 18:
+            if stateCounter == 0 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 18:
                 simulation_statistics[0] += 1
                 history = True
-            if stateCounter == 19 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 21:
+            if stateCounter == 11 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 21:
                 simulation_statistics[1] += 1
                 if history == True:
                     simulation_statistics[2] += 1
@@ -216,13 +218,13 @@ class MDP():
                 csv_writer.writerow([str(idx+1), str(val)])
         print "Saving dump to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".csv"
     
-    def learnPolicy(self, num_episodes=100, policy="uniform",plain_text_save=True):
+    def learnPolicy(self, num_episodes=100, policy="uniform",plain_text_save=True, condition=False):
         print "USING POLICY: ", policy
         data = []
         simulation_statistics = [0]*3
         total_reward = 0
         for episode in range(num_episodes):
-            reward, simulation_statistics = self.runEpisode(policy,simulation_statistics=simulation_statistics)
+            reward, simulation_statistics = self.runEpisode(policy,simulation_statistics=simulation_statistics, condition=condition)
             total_reward += reward
             data.append(reward)
             if episode % 1000 == 0:
@@ -254,7 +256,8 @@ if __name__ == "__main__":
     args = argparse.ArgumentParser(description="Parsing Arguments for running RL Simulations")
     args.add_argument('-e', '--num_episodes', type=int, help='Number of Episodes')
     args.add_argument('-p', '--policy', type=str, help='Policy Type: uniform, optimal1, optimal2, goRight')
+    args.add_argument('-c', '--conditional_prob', type=int, help='True if you want to calculate the conditional probability')
     args = args.parse_args()
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.learnPolicy(num_episodes=args.num_episodes, policy=args.policy)
+    mdp.learnPolicy(num_episodes=args.num_episodes, policy=args.policy, condition=args.conditional_prob)
