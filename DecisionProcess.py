@@ -31,7 +31,6 @@ class MDP():
         return GetStateNumber(state[0], state[1], self.dimensions) == 23
 
     def getActionFromPolicy(self, state, policy='uniform'):
-        #TODO: Add other options for policies
         if policy == 'uniform':
             '''
             Random Action Policy
@@ -84,8 +83,6 @@ class MDP():
             else:
                 print "Returning random Action"
                 return random.randint(1,4)
-        elif policy == 'goRight':
-            return 2
         
     def isValid(self, state):
         if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
@@ -109,7 +106,6 @@ class MDP():
             return self.actionSpace[5]
 
     def rollTheDice(self):
-        # TODO: Change probability handler to floats in (0,1)
         proba = random.randint(1,100)
         effect = ""
         if proba <= 80:
