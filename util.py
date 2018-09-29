@@ -22,3 +22,11 @@ def GetStateNumber(x, y, size):
     elif (x==3 and y>2) or x==4:
         return size*x + y - 1
     
+def sample(distribution, theta, sigma):
+    pass
+
+def get_init():
+    pass
+
+def get_new_values(values, best_k, epsilon):
+    pass

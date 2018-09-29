@@ -249,7 +249,21 @@ class MDP():
             print "Saving plain text stats to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".txt"
         self.dumpData(data, policy)
     
-        
+    def evaluate(self, theta_k, num_episodes):
+        pass
+    
+    def learn_policy_bbo(self, init_population, best_ke, num_episodes, epsilon, num_iter):
+        curr_iter = 0
+        theta, sigma = util.get_init()
+        while (curr_iter < num_iter):
+            values = []
+            for k in range(init_population):
+                theta_k = util.sample('gaussian', theta, sigma)
+                j_k = self.evaluate(theta_k, num_episodes)
+                values.append((theta_k, j_k))
+            sorted(values, key=lambda x: x[1], reverse=True)
+            theta, sigma = util.get_new_vals(values, best_ke, epsilon)
+
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description="Parsing Arguments for running RL Simulations")
     args.add_argument('-e', '--num_episodes', type=int, help='Number of Episodes')
