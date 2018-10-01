@@ -271,6 +271,7 @@ class MDP():
         assert num_episodes > 1
         assert epsilon < 5e-4
 
+        import pdb; pdb.set_trace()
         curr_iter = 0
         reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace))
         theta, sigma = util.get_init(state_space=reshape_param[0],action_space=reshape_param[1])
@@ -287,11 +288,11 @@ class MDP():
         return self.evaluate(theta, num_episodes)
 
 if __name__ == "__main__":
-    args = argparse.ArgumentParser(description="Parsing Arguments for running RL Simulations")
-    args.add_argument('-e', '--num_episodes', type=int, help='Number of Episodes')
-    args.add_argument('-p', '--policy', type=str, help='Policy Type: uniform, optimal1, optimal2, goRight')
-    args.add_argument('-c', '--conditional_prob', type=str, help='True if you want to calculate the conditional probability')
-    args = args.parse_args()
+    # args = argparse.ArgumentParser(description="Parsing Arguments for running RL Simulations")
+    # args.add_argument('-e', '--num_episodes', type=int, help='Number of Episodes')
+    # args.add_argument('-p', '--policy', type=str, help='Policy Type: uniform, optimal1, optimal2, goRight')
+    # args.add_argument('-c', '--conditional_prob', type=str, help='True if you want to calculate the conditional probability')
+    # args = args.parse_args()
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
-    mdp.learnPolicy(num_episodes=args.num_episodes, policy=args.policy, condition=args.conditional_prob)
+    mdp.learn_policy_bbo(5, 3, 10, 1e-4, 2)
