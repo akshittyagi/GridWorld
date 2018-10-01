@@ -223,7 +223,10 @@ class MDP():
         print "Saving dump to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".csv"
     
     def learnPolicy(self, num_episodes=100, policy="uniform",plain_text_save=True, condition="False"):
-        print "USING POLICY: ", policy
+        if isinstance(policy) == str:
+            print "USING POLICY: ", policy
+        else:
+            print "USING POLICY: THETA", 
         data = []
         simulation_statistics = [0]*3
         total_reward = 0
@@ -231,48 +234,54 @@ class MDP():
             reward, simulation_statistics = self.runEpisode(policy,simulation_statistics=simulation_statistics, condition=condition)
             total_reward += reward
             data.append(reward)
-            if episode % 1000 == 0:
+            if episode % num_episodes/10 == 0:
                 print "At episode: ", episode
                 print "Reward: ", reward
+        
         if plain_text_save:
             file_writer = open(str(len(data))+"_Episodes_"+policy+".txt", 'w')
-        file_str = ""
-        file_str += "\n----------------------------"
-        file_str += "\nAverage Reward= " +  str(total_reward*1.0/num_episodes)
-        file_str += "\nMax Reward= " + str(max(data))
-        file_str += "\nMin Reward= " + str(min(data))
-        stddev = np.array(data) - (total_reward*1.0/num_episodes)
-        stddev = stddev**2
-        file_str += "\nStddev Reward= " + str(np.sqrt(np.sum(stddev))/len(stddev))
-        file_str += "\nPr(S_8=18)= " + str(1.0*simulation_statistics[0] / num_episodes)
-        file_str += "\nPr(S_19=21)= " + str(1.0*simulation_statistics[1] / num_episodes)
-        if simulation_statistics[0]!=0:
-            file_str += "\nPr(S_19=21|S_8=18)= " + str(1.0*simulation_statistics[2] / simulation_statistics[0]) 
-        file_str += "\n----------------------------"
-        print file_str
-        if plain_text_save:
-            file_writer.write(file_str)
-            print "Saving plain text stats to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".txt"
-        self.dumpData(data, policy)
+            file_str = ""
+            file_str += "\n----------------------------"
+            file_str += "\nAverage Reward= " +  str(total_reward*1.0/num_episodes)
+            file_str += "\nMax Reward= " + str(max(data))
+            file_str += "\nMin Reward= " + str(min(data))
+            stddev = np.array(data) - (total_reward*1.0/num_episodes)
+            stddev = stddev**2
+            file_str += "\nStddev Reward= " + str(np.sqrt(np.sum(stddev))/len(stddev))
+            file_str += "\nPr(S_8=18)= " + str(1.0*simulation_statistics[0] / num_episodes)
+            file_str += "\nPr(S_19=21)= " + str(1.0*simulation_statistics[1] / num_episodes)
+            if simulation_statistics[0]!=0:
+                file_str += "\nPr(S_19=21|S_8=18)= " + str(1.0*simulation_statistics[2] / simulation_statistics[0]) 
+            file_str += "\n----------------------------"
+            print file_str
+            if plain_text_save:
+                file_writer.write(file_str)
+                print "Saving plain text stats to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".txt"
+            self.dumpData(data, policy)
 
         return total_reward
     
     def evaluate(self, theta_k, num_episodes):
         for episode in range(num_episodes):
-            reward = self.learnPolicy(num_episodes, policy=theta_k)
+            reward = self.learnPolicy(num_episodes, policy=theta_k, plain_text_save=False, condition="False")
         return reward*1.0/num_episodes
 
     def learn_policy_bbo(self, init_population, best_ke, num_episodes, epsilon, num_iter):
+        assert init_population >= best_ke
+        assert num_episodes > 1
+        assert epsilon < 5e-4
+
         curr_iter = 0
-        theta, sigma = util.get_init(state_space=GetStateNumber(4,3,self.dimensions),action_space=len(self.actionSpace))
+        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace))
+        theta, sigma = util.get_init(state_space=reshape_param[0],action_space=reshape_param[1])
         while (curr_iter < num_iter):
             values = []
             for k in range(init_population):
-                theta_k = util.sample('gaussian', theta, sigma)
+                theta_k = util.sample('gaussian', theta, sigma, reshape_param)
                 j_k = self.evaluate(theta_k, num_episodes)
                 values.append((theta_k, j_k))
             sorted(values, key=lambda x: x[1], reverse=True)
-            theta, sigma = util.generate_new_distribution('gaussian', values, best_ke, epsilon)
+            theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
             curr_iter += 1
 
         return self.evaluate(theta, num_episodes)
