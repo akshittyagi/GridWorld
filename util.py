@@ -27,7 +27,8 @@ def GetStateNumber(x, y, size):
 def sample(distribution, theta, sigma, reshape_param):
     if distribution == 'gaussian':
         distribution = np.random.multivariate_normal
-    theta_k = distribution(theta, sigma, 1).T
+
+    theta_k = distribution(theta.reshape(theta.shape[0]), sigma, 1).T
 
     return theta_k.reshape(reshape_param[0], reshape_param[1])
 

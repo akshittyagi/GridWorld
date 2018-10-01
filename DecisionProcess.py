@@ -7,6 +7,7 @@ import csv
 from enum import Enum
 
 import numpy as np
+import util
 from util import ActionSpace, GetStateNumber, Cells
 from Board import Board
 
@@ -22,74 +23,17 @@ class MDP():
         self.actionSpace = {1:"up", 2:"right", 3:"down", 4:"left", 5:"stay"}
         self.gamma = gamma
 
-    def getInitialState(self, conditional_prob):
-        if conditional_prob == "True":
-            return (3, 4)
+    def getInitialState(self):
         return (0, 0)
     
     def isTerminalState(self, state):
         return GetStateNumber(state[0], state[1], self.dimensions) == 23
 
     def getActionFromPolicy(self, state, policy='uniform'):
-        if isinstance(policy, str):
-            if policy == 'uniform':
-                '''
-                Random Action Policy
-                '''
-                actionNumber = random.randint(1,4)
-                return actionNumber
-            elif policy == 'optimal1':
-                '''
-                Hand fashioned optimal Policy
-                '''
-                s_t = GetStateNumber(state[0], state[1], self.dimensions)
-                rightSet = [1,2,3,4,6,7,8,9,13,17,19,20,21,22]
-                downSet = [5,10,14,15,16,18]
-                upSet = [11,12]
-                if s_t in rightSet:
-                    #Go right
-                    return 2
-                elif s_t in downSet:
-                    #Go down
-                    return 3
-                elif s_t in upSet:
-                    #Go up
-                    return 1
-                elif self.isValid(state):
-                    print "State, Action mapping missing"
-                    return 5
-                else:
-                    print "Returning random Action"
-                    return random.randint(1,4)
-            elif policy == 'optimal2':
-                '''
-                Hand fashioned optimal Policy
-                '''
-                s_t = GetStateNumber(state[0], state[1], self.dimensions)
-                rightSet = [1,2,3,4,6,7,8,9,19,20,21,22]
-                downSet = [5,10,14,15,13,17,16,18]
-                upSet = [15,16,11,12]
-                if s_t in rightSet:
-                    #Go right
-                    return 2
-                elif s_t in downSet:
-                    #Go down
-                    return 3
-                elif s_t in upSet:
-                    #Go up
-                    return 1
-                elif self.isValid(state):
-                    print "State, Action mapping missing"
-                    return 5
-                else:
-                    print "Returning random Action"
-                    return random.randint(1,4)
-        else:
-            theta = policy
-            s_t = GetStateNumber(state[0], state[1], self.dimensions)
-            return np.argmax(theta[s_t]) + 1
+        theta = policy
+        s_t = GetStateNumber(state[0], state[1], self.dimensions)
+        return np.argmax(theta[s_t-1]) + 1
             
-        
     def isValid(self, state):
         if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
             return True
@@ -186,32 +130,18 @@ class MDP():
             reward += 10*(self.gamma**time_step)
         return reward
 
-    def runEpisode(self, policy='uniform',simulation_statistics=[], condition="False"):
-        s_t = self.getInitialState(condition)
+    def runEpisode(self, policy='uniform'):
+        s_t = self.getInitialState()
         incurredReward = 0
-        stateCounter = 0
-        history = False
-        if condition == "True":
-            policy = 'uniform'
         while(not self.isTerminalState(s_t)):
             # self.printBoard(s_t, stateCounter, incurredReward)
             a_t = self.getActionFromPolicy(s_t, policy=policy)
             s_t_1 = self.TransitionFunction(s_t, a_t)
             r_t = self.RewardFunction(s_t, a_t, s_t_1, stateCounter)
-            if stateCounter == 0 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 18:
-                simulation_statistics[0] += 1
-                history = True
-            if stateCounter == 11 and GetStateNumber(s_t[0], s_t[1], self.dimensions) == 21:
-                simulation_statistics[1] += 1
-                if history == True:
-                    simulation_statistics[2] += 1
-                    history = False
             s_t = s_t_1
             incurredReward += r_t
             stateCounter += 1
-        #     print "Reward: ", incurredReward
         # self.printBoard(s_t, stateCounter, incurredReward)
-        # print "Total Reward: ", incurredReward
         return incurredReward, simulation_statistics
 
     def dumpData(self, data, policy):
@@ -222,48 +152,15 @@ class MDP():
                 csv_writer.writerow([str(idx+1), str(val)])
         print "Saving dump to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".csv"
     
-    def learnPolicy(self, num_episodes=100, policy="uniform",plain_text_save=True, condition="False"):
-        if isinstance(policy) == str:
-            print "USING POLICY: ", policy
-        else:
-            print "USING POLICY: THETA", 
-        data = []
-        simulation_statistics = [0]*3
-        total_reward = 0
+    def evaluate(self, theta_k, num_episodes):
+        reward = 0
         for episode in range(num_episodes):
-            reward, simulation_statistics = self.runEpisode(policy,simulation_statistics=simulation_statistics, condition=condition)
-            total_reward += reward
-            data.append(reward)
+            curr_reward, _ = self.runEpisode(policy=theta_k)
+            reward += curr_reward
             if episode % num_episodes/10 == 0:
                 print "At episode: ", episode
                 print "Reward: ", reward
-        
-        if plain_text_save:
-            file_writer = open(str(len(data))+"_Episodes_"+policy+".txt", 'w')
-            file_str = ""
-            file_str += "\n----------------------------"
-            file_str += "\nAverage Reward= " +  str(total_reward*1.0/num_episodes)
-            file_str += "\nMax Reward= " + str(max(data))
-            file_str += "\nMin Reward= " + str(min(data))
-            stddev = np.array(data) - (total_reward*1.0/num_episodes)
-            stddev = stddev**2
-            file_str += "\nStddev Reward= " + str(np.sqrt(np.sum(stddev))/len(stddev))
-            file_str += "\nPr(S_8=18)= " + str(1.0*simulation_statistics[0] / num_episodes)
-            file_str += "\nPr(S_19=21)= " + str(1.0*simulation_statistics[1] / num_episodes)
-            if simulation_statistics[0]!=0:
-                file_str += "\nPr(S_19=21|S_8=18)= " + str(1.0*simulation_statistics[2] / simulation_statistics[0]) 
-            file_str += "\n----------------------------"
-            print file_str
-            if plain_text_save:
-                file_writer.write(file_str)
-                print "Saving plain text stats to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".txt"
-            self.dumpData(data, policy)
-
-        return total_reward
-    
-    def evaluate(self, theta_k, num_episodes):
-        for episode in range(num_episodes):
-            reward = self.learnPolicy(num_episodes, policy=theta_k, plain_text_save=False, condition="False")
+        print "Av Reward: ", reward*1.0/num_episodes
         return reward*1.0/num_episodes
 
     def learn_policy_bbo(self, init_population, best_ke, num_episodes, epsilon, num_iter):
@@ -271,13 +168,13 @@ class MDP():
         assert num_episodes > 1
         assert epsilon < 5e-4
 
-        import pdb; pdb.set_trace()
         curr_iter = 0
-        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace))
+        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
         theta, sigma = util.get_init(state_space=reshape_param[0],action_space=reshape_param[1])
         while (curr_iter < num_iter):
             values = []
             for k in range(init_population):
+                print "At : ",k
                 theta_k = util.sample('gaussian', theta, sigma, reshape_param)
                 j_k = self.evaluate(theta_k, num_episodes)
                 values.append((theta_k, j_k))
@@ -288,11 +185,6 @@ class MDP():
         return self.evaluate(theta, num_episodes)
 
 if __name__ == "__main__":
-    # args = argparse.ArgumentParser(description="Parsing Arguments for running RL Simulations")
-    # args.add_argument('-e', '--num_episodes', type=int, help='Number of Episodes')
-    # args.add_argument('-p', '--policy', type=str, help='Policy Type: uniform, optimal1, optimal2, goRight')
-    # args.add_argument('-c', '--conditional_prob', type=str, help='True if you want to calculate the conditional probability')
-    # args = args.parse_args()
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9)
     mdp.learn_policy_bbo(5, 3, 10, 1e-4, 2)
