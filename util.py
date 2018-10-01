@@ -1,5 +1,7 @@
 from enum import Enum
 
+import numpy as np
+
 class Cells(Enum):
     Regular = 0
     Obstacle = 1
@@ -25,8 +27,13 @@ def GetStateNumber(x, y, size):
 def sample(distribution, theta, sigma):
     pass
 
-def get_init():
-    pass
+def get_init(state_space, action_space):
+    theta = np.random.rand(state_space, action_space)
+    theta = theta.reshape(state_space*action_space, 1)
+    shape = theta.shape[0]
+    sigma_diag = 1
+    sigma = (sigma_diag*sigma_diag)*np.identity(shape)
+    return theta, sigma
 
-def get_new_values(values, best_k, epsilon):
+def generate_new_distribution(distribution, values, best_k, epsilon):
     pass

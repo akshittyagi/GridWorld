@@ -31,58 +31,64 @@ class MDP():
         return GetStateNumber(state[0], state[1], self.dimensions) == 23
 
     def getActionFromPolicy(self, state, policy='uniform'):
-        if policy == 'uniform':
-            '''
-            Random Action Policy
-            '''
-            actionNumber = random.randint(1,4)
-            return actionNumber
-        elif policy == 'optimal1':
-            '''
-            Hand fashioned optimal Policy
-            '''
+        if isinstance(policy, str):
+            if policy == 'uniform':
+                '''
+                Random Action Policy
+                '''
+                actionNumber = random.randint(1,4)
+                return actionNumber
+            elif policy == 'optimal1':
+                '''
+                Hand fashioned optimal Policy
+                '''
+                s_t = GetStateNumber(state[0], state[1], self.dimensions)
+                rightSet = [1,2,3,4,6,7,8,9,13,17,19,20,21,22]
+                downSet = [5,10,14,15,16,18]
+                upSet = [11,12]
+                if s_t in rightSet:
+                    #Go right
+                    return 2
+                elif s_t in downSet:
+                    #Go down
+                    return 3
+                elif s_t in upSet:
+                    #Go up
+                    return 1
+                elif self.isValid(state):
+                    print "State, Action mapping missing"
+                    return 5
+                else:
+                    print "Returning random Action"
+                    return random.randint(1,4)
+            elif policy == 'optimal2':
+                '''
+                Hand fashioned optimal Policy
+                '''
+                s_t = GetStateNumber(state[0], state[1], self.dimensions)
+                rightSet = [1,2,3,4,6,7,8,9,19,20,21,22]
+                downSet = [5,10,14,15,13,17,16,18]
+                upSet = [15,16,11,12]
+                if s_t in rightSet:
+                    #Go right
+                    return 2
+                elif s_t in downSet:
+                    #Go down
+                    return 3
+                elif s_t in upSet:
+                    #Go up
+                    return 1
+                elif self.isValid(state):
+                    print "State, Action mapping missing"
+                    return 5
+                else:
+                    print "Returning random Action"
+                    return random.randint(1,4)
+        else:
+            theta = policy
             s_t = GetStateNumber(state[0], state[1], self.dimensions)
-            rightSet = [1,2,3,4,6,7,8,9,13,17,19,20,21,22]
-            downSet = [5,10,14,15,16,18]
-            upSet = [11,12]
-            if s_t in rightSet:
-                #Go right
-                return 2
-            elif s_t in downSet:
-                #Go down
-                return 3
-            elif s_t in upSet:
-                #Go up
-                return 1
-            elif self.isValid(state):
-                print "State, Action mapping missing"
-                return 5
-            else:
-                print "Returning random Action"
-                return random.randint(1,4)
-        elif policy == 'optimal2':
-            '''
-            Hand fashioned optimal Policy
-            '''
-            s_t = GetStateNumber(state[0], state[1], self.dimensions)
-            rightSet = [1,2,3,4,6,7,8,9,19,20,21,22]
-            downSet = [5,10,14,15,13,17,16,18]
-            upSet = [15,16,11,12]
-            if s_t in rightSet:
-                #Go right
-                return 2
-            elif s_t in downSet:
-                #Go down
-                return 3
-            elif s_t in upSet:
-                #Go up
-                return 1
-            elif self.isValid(state):
-                print "State, Action mapping missing"
-                return 5
-            else:
-                print "Returning random Action"
-                return random.randint(1,4)
+            return np.argmax(theta[s_t]) + 1
+            
         
     def isValid(self, state):
         if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
@@ -248,13 +254,17 @@ class MDP():
             file_writer.write(file_str)
             print "Saving plain text stats to: ", str(len(data))+"_Episodes_"+"_Discount_"+str(self.gamma)+"_"+policy+".txt"
         self.dumpData(data, policy)
+
+        return total_reward
     
     def evaluate(self, theta_k, num_episodes):
-        pass
-    
+        for episode in range(num_episodes):
+            reward = self.learnPolicy(num_episodes, policy=theta_k)
+        return reward*1.0/num_episodes
+
     def learn_policy_bbo(self, init_population, best_ke, num_episodes, epsilon, num_iter):
         curr_iter = 0
-        theta, sigma = util.get_init()
+        theta, sigma = util.get_init(state_space=GetStateNumber(4,3,self.dimensions),action_space=len(self.actionSpace))
         while (curr_iter < num_iter):
             values = []
             for k in range(init_population):
@@ -262,7 +272,10 @@ class MDP():
                 j_k = self.evaluate(theta_k, num_episodes)
                 values.append((theta_k, j_k))
             sorted(values, key=lambda x: x[1], reverse=True)
-            theta, sigma = util.get_new_vals(values, best_ke, epsilon)
+            theta, sigma = util.generate_new_distribution('gaussian', values, best_ke, epsilon)
+            curr_iter += 1
+
+        return self.evaluate(theta, num_episodes)
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description="Parsing Arguments for running RL Simulations")
