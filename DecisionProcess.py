@@ -152,7 +152,7 @@ class MDP():
         s_t = self.getInitialState()
         incurredReward = 0
         stateCounter = 0
-        while(not self.isTerminalState(s_t)):
+        while(not self.isTerminalState(s_t) and stateCounter<10000):
             if self.debug:
                 self.printBoard(s_t, stateCounter, incurredReward)
             a_t = self.getActionFromPolicy(s_t, policy=policy)
@@ -161,7 +161,7 @@ class MDP():
             s_t = s_t_1
             incurredReward += r_t
             stateCounter += 1
-            if stateCounter % 1000 == 0:
+            if stateCounter % 5000 == 0 and self.debug:
                 print "At state: ", stateCounter-1
                 print "Reward in current episode: ", incurredReward 
         if self.debug:
@@ -173,7 +173,7 @@ class MDP():
         for episode in range(num_episodes):
             curr_reward  = self.runEpisode(policy=theta_k)
             reward += curr_reward
-            if episode % num_episodes/10 == 0:
+            if episode % num_episodes/10 == 0 and self.debug:
                 print "At episode: ", episode
                 print "Reward: ", reward
         print "Av Reward: ", reward*1.0/num_episodes
@@ -189,18 +189,21 @@ class MDP():
         theta, sigma = util.get_init(state_space=reshape_param[0],action_space=reshape_param[1])
         while (curr_iter < num_iter):
             values = []
+            print "-----------------------------"
+            print "At ITER: ", curr_iter
             for k in range(init_population):
                 print "At : ",k
                 theta_k = util.sample('gaussian', theta, sigma, reshape_param)
                 j_k = self.evaluate(theta_k, num_episodes)
-                values.append((theta_k, j_k))
+                values.append((theta_k.reshape(reshape_param[0]*reshape_param[1], 1), j_k))
             sorted(values, key=lambda x: x[1], reverse=True)
             theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
             curr_iter += 1
+            print "-----------------------------"
 
         return self.evaluate(theta, num_episodes)
 
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
-    mdp.learn_policy_bbo(5, 3, 10, 1e-4, 2)
+    mdp.learn_policy_bbo(init_population=20, best_ke=10, num_episodes=10, epsilon=1e-4, num_iter=500)
