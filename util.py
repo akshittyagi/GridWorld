@@ -45,8 +45,8 @@ def generate_new_distribution(distribution, mean_vector, values, best_k, epsilon
         distribution = np.random.multivariate_normal
     values = values[:best_k]
     sum_vector = np.array([element[0] for element in values])
-    sum_vector -= mean_vector
     average_vector = np.sum(sum_vector, axis=0)/best_k
+    sum_vector -= mean_vector
     sigma = (epsilon*np.identity(values[0][0].shape[0]))
     for vector in sum_vector:
         sigma += vector.T.dot(vector)

@@ -152,7 +152,7 @@ class MDP():
         s_t = self.getInitialState()
         incurredReward = 0
         stateCounter = 0
-        while(not self.isTerminalState(s_t) and stateCounter<10000):
+        while(not self.isTerminalState(s_t) and stateCounter<100000):
             if self.debug:
                 self.printBoard(s_t, stateCounter, incurredReward)
             a_t = self.getActionFromPolicy(s_t, policy=policy)
@@ -196,11 +196,11 @@ class MDP():
                 theta_k = util.sample('gaussian', theta, sigma, reshape_param)
                 j_k = self.evaluate(theta_k, num_episodes)
                 values.append((theta_k.reshape(reshape_param[0]*reshape_param[1], 1), j_k))
-            sorted(values, key=lambda x: x[1], reverse=True)
+            values = sorted(values, key=lambda x: x[1], reverse=True)
             theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
             curr_iter += 1
             print "-----------------------------"
-
+            
         return self.evaluate(theta, num_episodes)
 
 if __name__ == "__main__":
