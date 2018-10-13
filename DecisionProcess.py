@@ -213,6 +213,8 @@ class MDP():
         curr_iter = 0
         reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
         data = []
+        theta_max = []
+        max_av_reward = -2**31
         while (curr_iter < num_iter):
             theta, sigma = util.get_init(state_space=reshape_param[0],action_space=reshape_param[1], sigma=sigma)
             for i in range(steps_per_trial):
@@ -231,7 +233,12 @@ class MDP():
                 toc = time.time()
                 values = sorted(values, key=lambda x: x[1], reverse=True)
                 print "Max reward: ", values[0][1]
+                if max_av_reward < values[0][1]:
+                    max_av_reward = values[0][1]
+                    print "MAX REWARD UPDATED"
+                    theta_max = values[0][0]
                 theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
+                data.append(values)
                 print "-----------------------------"
             curr_iter += 1
         pkl.dump(data, open("FILE.pkl", 'w'))
