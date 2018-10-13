@@ -5,7 +5,9 @@ import argparse
 import pickle as pkl
 import csv
 from enum import Enum
+import multiprocessing
 from multiprocessing import Pool
+import time
 
 import numpy as np
 import util
@@ -14,7 +16,7 @@ from Board import Board
 
 class MDP():
     
-    def __init__(self, board, prob_succ, prob_left_veer, prob_right_veer, prob_fail, gamma, debug=False):
+    def __init__(self, board=Board(5), prob_succ=0.8, prob_left_veer=0.05, prob_right_veer=0.05, prob_fail= 0.1,gamma=0.9, debug=False):
         self.prob_succ = prob_succ
         self.prob_left_veer = prob_left_veer
         self.prob_right_veer = prob_right_veer
@@ -24,6 +26,8 @@ class MDP():
         self.actionSpace = {1:"up", 2:"right", 3:"down", 4:"left", 5:"stay"}
         self.gamma = gamma
         self.debug = debug
+        self.data = []
+        self.max_av_reward = -2**31
 
     def getInitialState(self):
         return (0, 0)
@@ -198,6 +202,42 @@ class MDP():
             print "Av Reward: ", reward*1.0/num_episodes
         return reward*1.0/num_episodes
 
+    def iterable(self, array):
+        for elem in array:
+            yield elem
+        
+    def learn_policy_bbo_multiprocessing(self, init_population, best_ke, num_episodes, epsilon, num_iter, steps_per_trial=15, sigma=100):
+        assert init_population >= best_ke
+        assert num_episodes > 1
+        assert epsilon < 5e-4
+        curr_iter = 0
+        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
+        data = []
+        while (curr_iter < num_iter):
+            theta, sigma = util.get_init(state_space=reshape_param[0],action_space=reshape_param[1], sigma=sigma)
+            for i in range(steps_per_trial):
+                values = []
+                print "-----------------------------"
+                print "At ITER: ", curr_iter
+                print "AT step: ", i
+                theta_sampled= util.sample('gaussian', theta, sigma, reshape_param, init_population)
+                softmax_theta = np.exp(theta_sampled)
+                tic = time.time()
+                pool = Pool(multiprocessing.cpu_count())
+                mp_obj = multiprocessing_obj(num_episodes)
+                values = pool.map(mp_obj, self.iterable(softmax_theta))
+                pool.close()
+                pool.join()
+                toc = time.time()
+                values = sorted(values, key=lambda x: x[1], reverse=True)
+                print "Max reward: ", values[0][1]
+                theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
+                print "-----------------------------"
+            curr_iter += 1
+        pkl.dump(data, open("FILE.pkl", 'w'))
+        pkl.dump(theta_max, open("THETA.pkl", 'w'))
+        return self.evaluate(theta, num_episodes)
+
     def learn_policy_bbo(self, init_population, best_ke, num_episodes, epsilon, num_iter, steps_per_trial=15, sigma=100):
         assert init_population >= best_ke
         assert num_episodes > 1
@@ -216,8 +256,10 @@ class MDP():
                 print "AT step: ", i
                 theta_sampled= util.sample('gaussian', theta, sigma, reshape_param, init_population)
                 softmax_theta = np.exp(theta_sampled)
+                tic = time.time()
                 for k in range(init_population):
                     # print "At child number: ", k
+                    
                     theta_k = softmax_theta[k]
                     theta_k = theta_k/np.sum(theta_k, axis=1)[:,None]
                     j_k = self.evaluate(theta_k, num_episodes)
@@ -227,6 +269,9 @@ class MDP():
                         theta_max = theta_k
                         print "MAX REWARD: ", max_av_reward, " AT step, iter: ", i, curr_iter
                     values.append((theta_k.reshape(reshape_param[0]*reshape_param[1], 1), j_k))
+                    
+                toc = time.time()
+                print(toc-tic)
                 values = sorted(values, key=lambda x: x[1], reverse=True)
                 theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
                
@@ -236,7 +281,25 @@ class MDP():
         pkl.dump(theta_max, open("THETA.pkl", 'w'))
         return self.evaluate(theta, num_episodes)
 
+class multiprocessing_obj(MDP):
+        def __init__(self, num_episodes):
+            MDP.__init__(self)
+            self.num_episodes = num_episodes
+            self.data = []
+            self.max_av_reward = -2**31
+            self.theta_max = []
+        def __call__(self, theta):
+            theta = theta/np.sum(theta, axis=1)[:,None]
+            j = self.evaluate(theta, self.num_episodes)
+            self.data.append(j)
+            if self.max_av_reward < j:
+                self.max_av_reward = j
+                if self.debug:
+                    print "Max reward: ", self.max_av_reward
+            return theta.reshape(theta.shape[0]*theta.shape[1], 1), j
+
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
-    mdp.learn_policy_bbo(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500, sigma=100)
+    # mdp.learn_policy_bbo(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500, sigma=100)
+    mdp.learn_policy_bbo_multiprocessing(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500, sigma=100)
