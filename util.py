@@ -36,9 +36,9 @@ def get_init(state_space, action_space, sigma):
     theta = np.random.rand(state_space, action_space)
     theta = theta.reshape(state_space*action_space, 1)
     shape = theta.shape[0]
-    sigma_diag = 1
-    sigma = (sigma_diag*sigma_diag)*np.identity(shape)
-    return theta, sigma
+    sigma_diag = sigma
+    sigma_ = (sigma_diag*sigma_diag)*np.identity(shape)
+    return theta, sigma_
 
 def generate_new_distribution(distribution, mean_vector, values, best_k, epsilon):
     if distribution == 'gaussian':

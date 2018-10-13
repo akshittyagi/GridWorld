@@ -170,7 +170,7 @@ class MDP():
         s_t = self.getInitialState()
         incurredReward = 0
         stateCounter = 0
-        while(not self.isTerminalState(s_t) and stateCounter<1000):
+        while(not self.isTerminalState(s_t) and stateCounter<1500):
             if self.debug:
                 self.printBoard(s_t, stateCounter, incurredReward)
             a_t = self.getActionFromPolicy(s_t, policy=policy)
@@ -194,14 +194,16 @@ class MDP():
             if episode % num_episodes/10 == 0 and self.debug:
                 print "At episode: ", episode
                 print "Reward: ", reward
-        print "Av Reward: ", reward*1.0/num_episodes
+        if self.debug:
+            print "Av Reward: ", reward*1.0/num_episodes
         return reward*1.0/num_episodes
 
     def learn_policy_bbo(self, init_population, best_ke, num_episodes, epsilon, num_iter, steps_per_trial=15, sigma=100):
         assert init_population >= best_ke
         assert num_episodes > 1
         assert epsilon < 5e-4
-
+        max_av_reward = -2**31
+        theta_max = []
         curr_iter = 0
         reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
         data = []
@@ -215,11 +217,15 @@ class MDP():
                 theta_sampled= util.sample('gaussian', theta, sigma, reshape_param, init_population)
                 softmax_theta = np.exp(theta_sampled)
                 for k in range(init_population):
-                    print "At child number: ", k
+                    # print "At child number: ", k
                     theta_k = softmax_theta[k]
                     theta_k = theta_k/np.sum(theta_k, axis=1)[:,None]
                     j_k = self.evaluate(theta_k, num_episodes)
                     data.append(j_k)
+                    if j_k > max_av_reward:
+                        max_av_reward = j_k
+                        theta_max = theta_k
+                        print "MAX REWARD: ", max_av_reward, " AT step, iter: ", i, curr_iter
                     values.append((theta_k.reshape(reshape_param[0]*reshape_param[1], 1), j_k))
                 values = sorted(values, key=lambda x: x[1], reverse=True)
                 theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
@@ -227,6 +233,7 @@ class MDP():
                 print "-----------------------------"
             curr_iter += 1
         pkl.dump(data, open("FILE.pkl", 'w'))
+        pkl.dump(theta_max, open("THETA.pkl", 'w'))
         return self.evaluate(theta, num_episodes)
 
 if __name__ == "__main__":
