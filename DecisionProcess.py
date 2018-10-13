@@ -48,8 +48,8 @@ class MDP():
                 if self.debug:
                     print "Action Array: ", action_array
                     print "Rand number: ",random_number
-                    print "Action selected: ", action + 1    
-                return action + 1
+                    print "Action selected: ", action + 2    
+                return action + 2
         
         if self.debug:
             print "!!!!!!!!! NOT RETURNING ANYTHING !!!!!!!!!"
@@ -211,7 +211,7 @@ class MDP():
         assert init_population >= best_ke
         assert num_episodes > 1
         curr_iter = 0
-        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-2)
+        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-3)
         data = []
         theta_max = []
         max_av_reward = -2**31
@@ -337,4 +337,4 @@ if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     # mdp.learn_policy_bbo(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500, sigma=100)
-    mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-3, num_iter=500, sigma=100)
+    mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-2, num_iter=500, sigma=100)
