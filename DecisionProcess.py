@@ -5,6 +5,7 @@ import argparse
 import pickle as pkl
 import csv
 from enum import Enum
+from multiprocessing import Pool
 
 import numpy as np
 import util
@@ -33,15 +34,24 @@ class MDP():
     def getActionFromPolicy(self, state, policy='uniform'):
         theta = policy
         s_t = GetStateNumber(state[0], state[1], self.dimensions)
-        currRow = theta[s_t]
-        import pdb; pdb.set_trace()
-        random_number = 1.0*random.randint(1,100)/100
+        currRow = theta[s_t-1]
+        random_number = 1.0*random.randint(0,99)/100
         action_array = sorted(zip(np.arange(len(currRow)), currRow), key=lambda x: x[1], reverse=True)
         prev_proba = 0
         for action, probability in action_array:
             prev_proba += probability
             if random_number <= prev_proba:
+                if self.debug:
+                    print "Action Array: ", action_array
+                    print "Rand number: ",random_number
+                    print "Action selected: ", action + 1    
                 return action + 1
+        
+        if self.debug:
+            print "!!!!!!!!! NOT RETURNING ANYTHING !!!!!!!!!"
+            print "Action Array: ", action_array
+            print "Rand number: ",random_number
+            print "Action selected: ", "NOTHING"
             
     def isValid(self, state):
         if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
@@ -160,7 +170,7 @@ class MDP():
         s_t = self.getInitialState()
         incurredReward = 0
         stateCounter = 0
-        while(not self.isTerminalState(s_t) and stateCounter<100000):
+        while(not self.isTerminalState(s_t) and stateCounter<150):
             if self.debug:
                 self.printBoard(s_t, stateCounter, incurredReward)
             a_t = self.getActionFromPolicy(s_t, policy=policy)
@@ -195,6 +205,7 @@ class MDP():
         curr_iter = 0
         reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
         theta, sigma = util.get_init(state_space=reshape_param[0],action_space=reshape_param[1])
+        data = []
         while (curr_iter < num_iter):
             values = []
             print "-----------------------------"
@@ -202,19 +213,20 @@ class MDP():
             theta_sampled= util.sample('gaussian', theta, sigma, reshape_param, init_population)
             softmax_theta = np.exp(theta_sampled)
             for k in range(init_population):
-                print "At K: ", k
+                print "At child number: ", k
                 theta_k = softmax_theta[k]
                 theta_k = theta_k/np.sum(theta_k, axis=1)[:,None]
                 j_k = self.evaluate(theta_k, num_episodes)
+                data.append(j_k)
                 values.append((theta_k.reshape(reshape_param[0]*reshape_param[1], 1), j_k))
             values = sorted(values, key=lambda x: x[1], reverse=True)
             theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
             curr_iter += 1
             print "-----------------------------"
-            
+        pkl.dump(data, open("FILE.pkl", 'w'))
         return self.evaluate(theta, num_episodes)
 
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
-    mdp.learn_policy_bbo(init_population=20, best_ke=10, num_episodes=10, epsilon=1e-4, num_iter=500)
+    mdp.learn_policy_bbo(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500)
