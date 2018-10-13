@@ -33,7 +33,15 @@ class MDP():
     def getActionFromPolicy(self, state, policy='uniform'):
         theta = policy
         s_t = GetStateNumber(state[0], state[1], self.dimensions)
-        return np.argmax(theta[s_t-1]) + 1
+        currRow = theta[s_t]
+        import pdb; pdb.set_trace()
+        random_number = 1.0*random.randint(1,100)/100
+        action_array = sorted(zip(np.arange(len(currRow)), currRow), key=lambda x: x[1], reverse=True)
+        prev_proba = 0
+        for action, probability in action_array:
+            prev_proba += probability
+            if random_number <= prev_proba:
+                return action + 1
             
     def isValid(self, state):
         if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
