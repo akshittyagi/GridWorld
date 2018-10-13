@@ -227,6 +227,7 @@ class MDP():
                 pool = Pool(multiprocessing.cpu_count())
                 mp_obj = multiprocessing_obj(num_episodes)
                 values = pool.map(mp_obj, self.iterable(softmax_theta))
+                data.append(np.array(values)[:,1].tolist())
                 pool.close()
                 pool.join()
                 toc = time.time()
@@ -237,13 +238,29 @@ class MDP():
                     print "MAX REWARD UPDATED"
                     theta_max = values[0][0]
                 theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
-                data.append(values)
                 print "-----------------------------"
             curr_iter += 1
+        print "Saving data"
         pkl.dump(data, open("FILE.pkl", 'w'))
         pkl.dump(theta_max, open("THETA.pkl", 'w'))
         return self.evaluate(theta, num_episodes)
 
+    #TODO: Figure out a parallelizing strategy for FCHC
+    def learn_policy_fchc_multiprocessing(self, num_iter, steps_per_trial, sigma, num_episodes):
+        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
+        curr_iter = 0
+        while curr_iter < num_iter:
+            theta, _ = util.get_init(state_space=reshape_param[0], action_space=reshape_param[1], sigma=sigma)
+            j = self.evaluate(theta, num_episodes)
+            for i in range(steps_per_trial):
+                theta_sampled = util.sample(distribution='gaussian', theta=theta, sigma=sigma, reshape_param=reshape_param)
+                softmax_theta = np.exp(theta_sampled)
+                softmax_theta /= np.sum(softmax_theta, axis=1)[:,None]
+                j_n = self.evaluate(theta_sampled, num_episodes)
+                if j_n > j:
+                    theta = theta_sampled
+                    j = j_n
+   
     def learn_policy_fchc(self, num_iter, steps_per_trial, sigma, num_episodes):
         reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
         curr_iter = 0
@@ -298,6 +315,7 @@ class MDP():
                
                 print "-----------------------------"
             curr_iter += 1
+        print "Saving Data"
         pkl.dump(data, open("FILE.pkl", 'w'))
         pkl.dump(theta_max, open("THETA.pkl", 'w'))
         return self.evaluate(theta, num_episodes)
@@ -323,4 +341,4 @@ if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     # mdp.learn_policy_bbo(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500, sigma=100)
-    mdp.learn_policy_bbo_multiprocessing(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-3, num_iter=500, sigma=100)
+    mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-3, num_iter=500, sigma=100)
