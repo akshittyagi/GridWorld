@@ -50,7 +50,7 @@ def generate_new_distribution(distribution, mean_vector, values, best_k, epsilon
     sum_vector -= mean_vector
     sigma = (epsilon*np.identity(values[0][0].shape[0]))
     for vector in sum_vector:
-        sigma += vector.T.dot(vector)
+        sigma += vector.dot(vector.T)
     sigma /= (epsilon + best_k)
 
     return average_vector, sigma

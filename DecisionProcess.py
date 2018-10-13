@@ -205,12 +205,13 @@ class MDP():
     def iterable(self, array):
         for elem in array:
             yield elem
-        
+    
+    # Only actions being considered are 1:up, 2:right, 3:down
     def learn_policy_bbo_multiprocessing(self, init_population, best_ke, num_episodes, epsilon, num_iter, steps_per_trial=15, sigma=100):
         assert init_population >= best_ke
         assert num_episodes > 1
         curr_iter = 0
-        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
+        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-2)
         data = []
         theta_max = []
         max_av_reward = -2**31
@@ -243,7 +244,7 @@ class MDP():
         print "Saving data"
         pkl.dump(data, open("FILE.pkl", 'w'))
         pkl.dump(theta_max, open("THETA.pkl", 'w'))
-        return self.evaluate(theta, num_episodes)
+        return self.evaluate(theta_max, num_episodes)
 
     #TODO: Figure out a parallelizing strategy for FCHC
     def learn_policy_fchc_multiprocessing(self, num_iter, steps_per_trial, sigma, num_episodes):
