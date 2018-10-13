@@ -32,7 +32,7 @@ def sample(distribution, theta, sigma, reshape_param, number):
 
     return theta_k.reshape(number, reshape_param[0], reshape_param[1])
 
-def get_init(state_space, action_space):
+def get_init(state_space, action_space, sigma):
     theta = np.random.rand(state_space, action_space)
     theta = theta.reshape(state_space*action_space, 1)
     shape = theta.shape[0]
