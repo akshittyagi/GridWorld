@@ -293,11 +293,8 @@ class MDP():
                 print "At ITER: ", curr_iter
                 print "AT step: ", i
                 theta_sampled= util.sample('gaussian', theta, sigma, reshape_param, init_population)
-                
                 tic = time.time()
                 for k in range(init_population):
-                    # print "At child number: ", k
-                    
                     theta_k = softmax_theta[k]
                     theta_k = theta_k/np.sum(theta_k, axis=1)[:,None]
                     j_k = self.evaluate(theta_k, num_episodes)
@@ -306,19 +303,17 @@ class MDP():
                         max_av_reward = j_k
                         theta_max = theta_k
                         print "MAX REWARD: ", max_av_reward, " AT step, iter: ", i, curr_iter
-                    values.append((theta_k.reshape(reshape_param[0]*reshape_param[1], 1), j_k))
-                    
+                    values.append((theta_k.reshape(reshape_param[0]*reshape_param[1], 1), j_k))  
                 toc = time.time()
                 print(toc-tic)
                 values = sorted(values, key=lambda x: x[1], reverse=True)
                 theta, sigma = util.generate_new_distribution('gaussian', theta, values, best_ke, epsilon)
-               
                 print "-----------------------------"
             curr_iter += 1
         print "Saving Data"
         pkl.dump(data, open("FILE.pkl", 'w'))
         pkl.dump(theta_max, open("THETA.pkl", 'w'))
-        return self.evaluate(theta, num_episodes)
+        return self.evaluate(theta_max, num_episodes)
 
 class multiprocessing_obj(MDP):
         def __init__(self, num_episodes):
