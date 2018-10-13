@@ -191,9 +191,12 @@ class MDP():
             values = []
             print "-----------------------------"
             print "At ITER: ", curr_iter
+            theta_sampled= util.sample('gaussian', theta, sigma, reshape_param, init_population)
+            softmax_theta = np.exp(theta_sampled)
             for k in range(init_population):
-                print "At : ",k
-                theta_k = util.sample('gaussian', theta, sigma, reshape_param)
+                print "At K: ", k
+                theta_k = softmax_theta[k]
+                theta_k = theta_k/np.sum(theta_k, axis=1)[:,None]
                 j_k = self.evaluate(theta_k, num_episodes)
                 values.append((theta_k.reshape(reshape_param[0]*reshape_param[1], 1), j_k))
             values = sorted(values, key=lambda x: x[1], reverse=True)
