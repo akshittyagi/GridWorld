@@ -266,6 +266,8 @@ class MDP():
         reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-3)
         curr_iter = 0
         data = []
+        theta_max = []
+        global_max = -2**31
         while curr_iter < num_iter:
             theta = util.get_init(state_space=reshape_param[0], action_space=reshape_param[1], sigma=sigma)
             softmax_theta = np.exp(theta)
@@ -284,6 +286,10 @@ class MDP():
                     theta = theta_sampled
                     j = j_n
                     print "MAX REWARD: ", j, " AT step, iter: ", i, curr_iter
+                if j_n > global_max:
+                    global_max = j_n
+                    theta_max = theta
+                    print "GLOBAL MAX UPDATED: ", global_max, " AT step, iter: ", i, curr_iter
                 print "-----------------------------"
             curr_iter += 1
         print "Saving Data"
