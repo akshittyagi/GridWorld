@@ -24,13 +24,14 @@ def GetStateNumber(x, y, size):
     elif (x==3 and y>2) or x==4:
         return size*x + y - 1
     
-def sample(distribution, theta, sigma, reshape_param, number):
+def sample(distribution, theta, sigma, reshape_param=[], number=1):
     if distribution == 'gaussian':
         distribution = np.random.multivariate_normal
-    
-    theta_k = distribution(theta.reshape(theta.shape[0]), sigma, number)
-
-    return theta_k.reshape(number, reshape_param[0], reshape_param[1])
+    if isinstance(sigma,int):
+        return distribution(theta.reshape(theta.reshape[0]), (sigma*sigma)*np.identity(thet.shape[0]), 1).reshape(reshape_param[0], reshape_param[1])
+    else:
+        theta_k = distribution(theta.reshape(theta.shape[0]), sigma, number)
+        return theta_k.reshape(number, reshape_param[0], reshape_param[1])
 
 def get_init(state_space, action_space, sigma):
     theta = np.random.rand(state_space, action_space)

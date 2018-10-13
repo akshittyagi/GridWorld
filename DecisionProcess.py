@@ -244,6 +244,21 @@ class MDP():
         pkl.dump(theta_max, open("THETA.pkl", 'w'))
         return self.evaluate(theta, num_episodes)
 
+    def learn_policy_fchc(self, num_iter, steps_per_trial, sigma, num_episodes):
+        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
+        curr_iter = 0
+        while curr_iter < num_iter:
+            theta, _ = util.get_init(state_space=reshape_param[0], action_space=reshape_param[1], sigma=sigma)
+            j = self.evaluate(theta, num_episodes)
+            for i in range(steps_per_trial):
+                theta_sampled = util.sample(distribution='gaussian', theta=theta, sigma=sigma, reshape_param=reshape_param)
+                softmax_theta = np.exp(theta_sampled)
+                softmax_theta /= np.sum(softmax_theta, axis=1)[:,None]
+                j_n = self.evaluate(theta_sampled, num_episodes)
+                if j_n > j:
+                    theta = theta_sampled
+                    j = j_n
+    
     def learn_policy_bbo(self, init_population, best_ke, num_episodes, epsilon, num_iter, steps_per_trial=15, sigma=100):
         assert init_population >= best_ke
         assert num_episodes > 1
@@ -261,7 +276,7 @@ class MDP():
                 print "At ITER: ", curr_iter
                 print "AT step: ", i
                 theta_sampled= util.sample('gaussian', theta, sigma, reshape_param, init_population)
-                softmax_theta = np.exp(theta_sampled)
+                
                 tic = time.time()
                 for k in range(init_population):
                     # print "At child number: ", k
