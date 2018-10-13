@@ -28,12 +28,16 @@ def sample(distribution, theta, sigma, reshape_param=[], number=1):
     if distribution == 'gaussian':
         distribution = np.random.multivariate_normal
     if isinstance(sigma,int):
-        return distribution(theta.reshape(theta.reshape[0]), (sigma*sigma)*np.identity(thet.shape[0]), 1).reshape(reshape_param[0], reshape_param[1])
+        theta_k =  distribution(theta.reshape(theta.shape[0]*theta.shape[1]), (sigma*sigma)*np.identity(theta.shape[0]*theta.shape[1]), 1)
+        return theta_k.reshape(reshape_param[0], reshape_param[1])
     else:
         theta_k = distribution(theta.reshape(theta.shape[0]), sigma, number)
         return theta_k.reshape(number, reshape_param[0], reshape_param[1])
 
 def get_init(state_space, action_space, sigma):
+    if isinstance(sigma, int):
+        theta = np.random.rand(state_space, action_space)
+        return theta.reshape(state_space, action_space)    
     theta = np.random.rand(state_space, action_space)
     theta = theta.reshape(state_space*action_space, 1)
     shape = theta.shape[0]

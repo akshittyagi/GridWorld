@@ -263,20 +263,33 @@ class MDP():
                     j = j_n
    
     def learn_policy_fchc(self, num_iter, steps_per_trial, sigma, num_episodes):
-        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-1)
+        reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-3)
         curr_iter = 0
+        data = []
         while curr_iter < num_iter:
-            theta, _ = util.get_init(state_space=reshape_param[0], action_space=reshape_param[1], sigma=sigma)
-            j = self.evaluate(theta, num_episodes)
+            theta = util.get_init(state_space=reshape_param[0], action_space=reshape_param[1], sigma=sigma)
+            softmax_theta = np.exp(theta)
+            softmax_theta = softmax_theta/np.sum(softmax_theta, axis=1)[:,None]
+            j = self.evaluate(softmax_theta, num_episodes)
             for i in range(steps_per_trial):
+                print "-----------------------------"
+                print "At ITER: ", curr_iter
+                print "AT step: ", i
                 theta_sampled = util.sample(distribution='gaussian', theta=theta, sigma=sigma, reshape_param=reshape_param)
                 softmax_theta = np.exp(theta_sampled)
-                softmax_theta /= np.sum(softmax_theta, axis=1)[:,None]
-                j_n = self.evaluate(theta_sampled, num_episodes)
+                softmax_theta = softmax_theta/np.sum(softmax_theta, axis=1)[:,None]
+                j_n = self.evaluate(softmax_theta, num_episodes)
+                data.append(j_n)
                 if j_n > j:
                     theta = theta_sampled
                     j = j_n
-    
+                    print "MAX REWARD: ", j, " AT step, iter: ", i, curr_iter
+                print "-----------------------------"
+            curr_iter += 1
+        print "Saving Data"
+        pkl.dump(data, open("fchcFILE.pkl", 'w'))
+        pkl.dump(theta_max, open("fchcTHETA.pkl", 'w'))
+
     def learn_policy_bbo(self, init_population, best_ke, num_episodes, epsilon, num_iter, steps_per_trial=15, sigma=100):
         assert init_population >= best_ke
         assert num_episodes > 1
@@ -314,7 +327,6 @@ class MDP():
         print "Saving Data"
         pkl.dump(data, open("FILE.pkl", 'w'))
         pkl.dump(theta_max, open("THETA.pkl", 'w'))
-        return self.evaluate(theta_max, num_episodes)
 
 class multiprocessing_obj(MDP):
         def __init__(self, num_episodes):
@@ -337,4 +349,5 @@ if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     # mdp.learn_policy_bbo(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500, sigma=100)
-    mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-2, num_iter=500, sigma=100)
+    # mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-2, num_iter=500, sigma=10)
+    mdp.learn_policy_fchc(num_iter=500,steps_per_trial=15,sigma=10,num_episodes=10)
