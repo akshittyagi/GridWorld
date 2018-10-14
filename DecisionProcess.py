@@ -262,35 +262,34 @@ class MDP():
                     theta = theta_sampled
                     j = j_n
    
-    def learn_policy_fchc(self, num_iter, steps_per_trial, sigma, num_episodes):
+    def learn_policy_fchc(self, num_iter, sigma, num_episodes):
         reshape_param = (GetStateNumber(4,3,self.dimensions), len(self.actionSpace)-3)
         curr_iter = 0
         data = []
         theta_max = []
         global_max = -2**31
+        theta = util.get_init(state_space=reshape_param[0], action_space=reshape_param[1], sigma=sigma, condition=True)
+        softmax_theta = np.exp(theta)
+        softmax_theta = softmax_theta/np.sum(softmax_theta, axis=1)[:,None]
+        j = self.evaluate(softmax_theta, num_episodes)
+                
         while curr_iter < num_iter:
-            theta = util.get_init(state_space=reshape_param[0], action_space=reshape_param[1], sigma=sigma)
-            softmax_theta = np.exp(theta)
+            print "-----------------------------"
+            print "At ITER: ", curr_iter
+            theta_sampled = util.sample(distribution='gaussian', theta=theta, sigma=sigma, reshape_param=reshape_param)
+            softmax_theta = np.exp(theta_sampled)
             softmax_theta = softmax_theta/np.sum(softmax_theta, axis=1)[:,None]
-            j = self.evaluate(softmax_theta, num_episodes)
-            for i in range(steps_per_trial):
-                print "-----------------------------"
-                print "At ITER: ", curr_iter
-                print "AT step: ", i
-                theta_sampled = util.sample(distribution='gaussian', theta=theta, sigma=sigma, reshape_param=reshape_param)
-                softmax_theta = np.exp(theta_sampled)
-                softmax_theta = softmax_theta/np.sum(softmax_theta, axis=1)[:,None]
-                j_n = self.evaluate(softmax_theta, num_episodes)
-                data.append(j_n)
-                if j_n > j:
-                    theta = theta_sampled
-                    j = j_n
-                    print "MAX REWARD: ", j, " AT step, iter: ", i, curr_iter
-                if j_n > global_max:
-                    global_max = j_n
-                    theta_max = theta
-                    print "GLOBAL MAX UPDATED: ", global_max, " AT step, iter: ", i, curr_iter
-                print "-----------------------------"
+            j_n = self.evaluate(softmax_theta, num_episodes)
+            data.append(j_n)
+            if j_n > j:
+                theta = theta_sampled
+                j = j_n
+                print "MAX REWARD: ", j, " AT iter: ", curr_iter
+            if j_n > global_max:
+                global_max = j_n
+                theta_max = theta
+                print "GLOBAL MAX UPDATED: ", global_max, " AT iter: ", curr_iter
+            print "-----------------------------"
             curr_iter += 1
         print "Saving Data"
         pkl.dump(data, open("fchcFILE.pkl", 'w'))
@@ -356,4 +355,4 @@ if __name__ == "__main__":
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     # mdp.learn_policy_bbo(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500, sigma=100)
     # mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-2, num_iter=500, sigma=10)
-    mdp.learn_policy_fchc(num_iter=500,steps_per_trial=15,sigma=10,num_episodes=10)
+    mdp.learn_policy_fchc(num_iter=500*15*100,sigma=10,num_episodes=10)

@@ -34,8 +34,8 @@ def sample(distribution, theta, sigma, reshape_param=[], number=1):
         theta_k = distribution(theta.reshape(theta.shape[0]), sigma, number)
         return theta_k.reshape(number, reshape_param[0], reshape_param[1])
 
-def get_init(state_space, action_space, sigma):
-    if isinstance(sigma, int):
+def get_init(state_space, action_space, sigma, condition=False):
+    if condition:
         theta = np.random.rand(state_space, action_space)
         return theta.reshape(state_space, action_space)    
     theta = np.random.rand(state_space, action_space)
