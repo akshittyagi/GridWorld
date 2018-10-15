@@ -244,7 +244,7 @@ class MDP():
         print "Saving data"
         pkl.dump(data, open("FILE.pkl", 'w'))
         pkl.dump(theta_max, open("THETA.pkl", 'w'))
-        return self.evaluate(theta_max, num_episodes)
+        
 
     #TODO: Figure out a parallelizing strategy for FCHC
     def learn_policy_fchc_multiprocessing(self, num_iter, steps_per_trial, sigma, num_episodes):
