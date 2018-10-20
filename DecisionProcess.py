@@ -207,7 +207,7 @@ class MDP():
             yield elem
     
     # Only actions being considered are 1:up, 2:right, 3:down
-    def learn_policy_bbo_multiprocessing(self, init_population, best_ke, num_episodes, epsilon, num_iter, steps_per_trial=15, sigma=100):
+    def learn_policy_bbo_multiprocessing(self, init_population, best_ke, num_episodes, epsilon, num_iter, steps_per_trial=15, variance=100):
         assert init_population >= best_ke
         assert num_episodes > 1
         curr_iter = 0
@@ -216,13 +216,14 @@ class MDP():
         theta_max = []
         max_av_reward = -2**31
         while (curr_iter < num_iter):
-            theta, sigma = util.get_init(state_space=reshape_param[0],action_space=reshape_param[1], sigma=sigma)
+            theta, sigma = util.get_init(state_space=reshape_param[0],action_space=reshape_param[1], sigma=variance)
             for i in range(steps_per_trial):
                 values = []
                 print "-----------------------------"
                 print "At ITER: ", curr_iter
                 print "AT step: ", i
                 theta_sampled= util.sample('gaussian', theta, sigma, reshape_param, init_population)
+                theta_sampled = variance*theta_sampled
                 softmax_theta = np.exp(theta_sampled)
                 tic = time.time()
                 pool = Pool(multiprocessing.cpu_count())
@@ -354,5 +355,5 @@ if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     # mdp.learn_policy_bbo(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500, sigma=100)
-    mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-2, num_iter=500, sigma=10)
+    mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-2, num_iter=20, variance=10)
     # mdp.learn_policy_fchc(num_iter=500*15*100,sigma=10,num_episodes=10)
