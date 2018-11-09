@@ -14,7 +14,7 @@ import util
 from util import ActionSpace, GetStateNumber, Cells
 from Board import Board
 
-class MDP():
+class MDP(object):
     
     def __init__(self, board=Board(5), prob_succ=0.8, prob_left_veer=0.05, prob_right_veer=0.05, prob_fail= 0.1,gamma=0.9, debug=False):
         self.prob_succ = prob_succ
@@ -29,6 +29,13 @@ class MDP():
         self.data = []
         self.max_av_reward = -2**31
 
+    def initValueFunction(self):
+        self.states = [0]*(GetStateNumber(4, 4, self.dimensions) + 1)
+        return self.states
+    
+    def getStateId(self, state):
+        return GetStateNumber(state[0], state[1], self.dimensions)
+
     def getInitialState(self):
         return (0, 0)
     
@@ -36,26 +43,29 @@ class MDP():
         return GetStateNumber(state[0], state[1], self.dimensions) == 23
 
     def getActionFromPolicy(self, state, policy='uniform'):
-        theta = policy
-        s_t = GetStateNumber(state[0], state[1], self.dimensions)
-        currRow = theta[s_t-1]
-        random_number = 1.0*random.randint(0,99)/100
-        action_array = sorted(zip(np.arange(len(currRow)), currRow), key=lambda x: x[1], reverse=True)
-        prev_proba = 0
-        for action, probability in action_array:
-            prev_proba += probability
-            if random_number <= prev_proba:
-                if self.debug:
-                    print "Action Array: ", action_array
-                    print "Rand number: ",random_number
-                    print "Action selected: ", action + 2    
-                return action + 2
-        
-        if self.debug:
-            print "!!!!!!!!! NOT RETURNING ANYTHING !!!!!!!!!"
-            print "Action Array: ", action_array
-            print "Rand number: ",random_number
-            print "Action selected: ", "NOTHING"
+        if isinstance(policy, str) and policy == 'uniform':
+            return random.randint(1,4)
+        else:
+            theta = policy
+            s_t = GetStateNumber(state[0], state[1], self.dimensions)
+            currRow = theta[s_t-1]
+            random_number = 1.0*random.randint(0,99)/100
+            action_array = sorted(zip(np.arange(len(currRow)), currRow), key=lambda x: x[1], reverse=True)
+            prev_proba = 0
+            for action, probability in action_array:
+                prev_proba += probability
+                if random_number <= prev_proba:
+                    if self.debug:
+                        print "Action Array: ", action_array
+                        print "Rand number: ",random_number
+                        print "Action selected: ", action + 2    
+                    return action + 2
+            
+            if self.debug:
+                print "!!!!!!!!! NOT RETURNING ANYTHING !!!!!!!!!"
+                print "Action Array: ", action_array
+                print "Rand number: ",random_number
+                print "Action selected: ", "NOTHING"
             
     def isValid(self, state):
         if (state[0] < self.dimensions and state[0] >= 0) and (state[1] < self.dimensions and state[1] >= 0) and not(state[0] == 2 and state[1] == 2) and not(state[0] == 3 and state[1] == 2):
@@ -335,25 +345,27 @@ class MDP():
         pkl.dump(theta_max, open("THETA.pkl", 'w'))
 
 class multiprocessing_obj(MDP):
-        def __init__(self, num_episodes):
-            MDP.__init__(self)
-            self.num_episodes = num_episodes
-            self.data = []
-            self.max_av_reward = -2**31
-            self.theta_max = []
-        def __call__(self, theta):
-            theta = theta/np.sum(theta, axis=1)[:,None]
-            j = self.evaluate(theta, self.num_episodes)
-            self.data.append(j)
-            if self.max_av_reward < j:
-                self.max_av_reward = j
-                if self.debug:
-                    print "Max reward: ", self.max_av_reward
-            return theta.reshape(theta.shape[0]*theta.shape[1], 1), j
+    def __init__(self, num_episodes):
+        MDP.__init__(self)
+        self.num_episodes = num_episodes
+        self.data = []
+        self.max_av_reward = -2**31
+        self.theta_max = []
+    def __call__(self, theta):
+        theta = theta/np.sum(theta, axis=1)[:,None]
+        j = self.evaluate(theta, self.num_episodes)
+        self.data.append(j)
+        if self.max_av_reward < j:
+            self.max_av_reward = j
+            if self.debug:
+                print "Max reward: ", self.max_av_reward
+        return theta.reshape(theta.shape[0]*theta.shape[1], 1), j
 
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     # mdp.learn_policy_bbo(init_population=500, best_ke=20, num_episodes=10, epsilon=1e-4, num_iter=500, sigma=100)
-    mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-2, num_iter=20, variance=10)
+    # mdp.learn_policy_bbo_multiprocessing(init_population=100, best_ke=10, num_episodes=10, epsilon=1e-2, num_iter=20, variance=10)
     # mdp.learn_policy_fchc(num_iter=500*15*100,sigma=10,num_episodes=10)
+    # mpd.evaluate_policy_TD(num_training_episodes=100, num_eval_episodes=100, policy='uniform')
+    
