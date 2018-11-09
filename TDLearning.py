@@ -58,14 +58,14 @@ class TD(object):
         '''Update weights for a series of episodes'''
         self.value_function = self.mdp.initValueFunction()
         for episode in range(self.num_train):
-            print "UPDATING WEIGHTS FOR EPISODE: ", episode + 1
+            # print "UPDATING WEIGHTS FOR EPISODE: ", episode + 1
             self.estimate_value_function()
 
     def evaluate_policy(self):
         '''Evaluate the policy for a series of episodes'''
         error = 0.0
         for episode in range(self.num_eval):
-            print "EVALUATING TD ERROR FOR EPISODE: ", episode + 1
+            # print "EVALUATING TD ERROR FOR EPISODE: ", episode + 1
             error = error + self.evaluate_error()
         error = error*1.0/self.num_eval
         return error
@@ -79,7 +79,7 @@ class TD(object):
             X.append(alpha)
             self.update_weights()
             y.append(self.evaluate_policy()) 
-        X = np.log(np.array(X))
+        X = np.log(np.array(X))/np.log(10)
         plt.plot(X, y)
         plt.show()
 
