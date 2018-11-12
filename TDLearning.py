@@ -38,20 +38,30 @@ class TD(object):
             self.value_function[s] += self.alpha*1.0*(r_t + self.gamma*1.0*(self.value_function[s_]) - self.value_function[s])
             s_t = s_t_1
   
-    def evaluate_error(self):
+    def evaluate_error(self, plot=False):
         '''Eval error for an episode'''
         s_t = self.mdp.getInitialState()
         error = 0
         time_step = 0
+        if plot:
+            X = []
+            y = []
         while(not self.mdp.isTerminalState(s_t)):
             a_t = self.mdp.getActionFromPolicy(s_t, policy=self.policy)
             s_t_1 = self.mdp.TransitionFunction(s_t, a_t)
             r_t = self.mdp.RewardFunction(s_t, a_t, s_t_1)
             s = self.mdp.getStateId(s_t)
             s_ = self.mdp.getStateId(s_t_1)
-            error = error + (r_t + self.gamma*1.0*(self.value_function[s_]) - self.value_function[s])**2
+            curr_error_2 = (r_t + self.gamma*1.0*(self.value_function[s_]) - self.value_function[s])**2
+            error = error + curr_error_2
             s_t = s_t_1
+            if plot:
+                X.append(time_step)
+                y.append(curr_error_2)
             time_step += 1
+        if plot:
+            plt.plot(X, y)
+            plt.show()
         return (1.0*error)/time_step
 
     def update_weights(self):
@@ -61,12 +71,28 @@ class TD(object):
             # print "UPDATING WEIGHTS FOR EPISODE: ", episode + 1
             self.estimate_value_function()
 
-    def evaluate_policy(self):
+    def evaluate_policy(self, alpha):
         '''Evaluate the policy for a series of episodes'''
         error = 0.0
+        X = []
+        y = []
         for episode in range(self.num_eval):
             # print "EVALUATING TD ERROR FOR EPISODE: ", episode + 1
-            error = error + self.evaluate_error()
+            if episode % 55 == 0:
+                curr_error = self.evaluate_error(plot=False)
+                error = error + curr_error
+                X.append(episode + 1)
+                y.append(curr_error)
+            else:
+                curr_error = self.evaluate_error(plot=False)
+                error = error + curr_error
+                X.append(episode + 1)
+                y.append(curr_error)
+        plt.plot(X, y)
+        plt.savefig(str(alpha) + "_fig_GW.png")
+        plt.clf()
+        plt.cla()
+        plt.close()
         error = error*1.0/self.num_eval
         return error
 
@@ -78,7 +104,7 @@ class TD(object):
             self.alpha = alpha
             X.append(alpha)
             self.update_weights()
-            y.append(self.evaluate_policy()) 
+            y.append(self.evaluate_policy(alpha))
         X = np.log(np.array(X))/np.log(10)
         plt.plot(X, y)
         plt.show()
