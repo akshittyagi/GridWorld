@@ -30,11 +30,17 @@ class MDP(object):
         self.max_av_reward = -2**31
 
     def init_q_function(self):
-        pass
+        self.q_vals = []
+        for state in range(GetStateNumber(4, 4, self.dimensions) + 1):
+            actions = np.random.uniform(0, 100, 3)
+            normalization = np.sum(actions)
+            actions = actions / normalization
+            self.q_vals.append(actions)
+        return self.q_vals
     
-    def getActionId(self):
-        pass
-        
+    def getActionId(self, a_t):
+        return a_t - 1
+
     def initValueFunction(self):
         self.states = [0]*(GetStateNumber(4, 4, self.dimensions) + 1)
         return self.states

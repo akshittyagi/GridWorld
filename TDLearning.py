@@ -130,25 +130,54 @@ class Sarsa(TD):
         for action, probability in action_array:
             prev_proba += probability
             if random_number <= prev_proba:
-                return action
+                return action + 1
 
     def learn(self):
+        X, y = [], []
+        X_ep, y_ep = [], []
+        global_time_step, time_step = 0, 0
         for episode in range(self.episodes):
+            print "------------------------------"
+            print "AT EPISODE: ", episode + 1
             s_t = self.mdp.getInitialState()
             a_t = self.epsilon_greedy_action_selection(s_t)
-            while not self.mdp.isTerminalState(s_t):
+            mse = 0
+            time_step = 0
+            while not self.mdp.isTerminalState(s_t) and time_step <= 1000:
                 s_t_1 = self.mdp.TransitionFunction(s_t, a_t)
                 r_t = self.mdp.RewardFunction(s_t, a_t, s_t_1)
                 a_t_1 = self.epsilon_greedy_action_selection(s_t_1)
                 s, s_ = map(self.mdp.getStateId, [s_t, s_t_1])
                 a, a_ = map(self.mdp.getActionId, [a_t, a_t_1])
-                self.q_values[s][a] += self.alpha*(r_t + self.gamma*(self.q_values[s_][a_]) - self.q_values[s][a])
+                q_td_error = r_t + self.gamma*(self.q_values[s_][a_]) - self.q_values[s][a]
+                self.q_values[s][a] += self.alpha*(q_td_error)
                 s_t = s_t_1
                 a_t = a_t_1
-
-
+                if time_step % 100 == 0:
+                    print "SQ TD ERROR: ", q_td_error**2
+                X.append(global_time_step)
+                y.append(q_td_error**2)
+                global_time_step += 1
+                time_step += 1
+                mse += q_td_error**2
+            mse = mse / time_step
+            X_ep.append(episode)
+            y_ep.append(mse)
+            print "AV MSE: ", mse
+            print "------------------------------"
+        
+        plt.plot(X, y)
+        plt.show()
+        plt.clf()
+        plt.cla()
+        plt.close()
+        plt.plot(X_ep, y_ep)
+        plt.show()
+        
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     td = TD(mdp, 100, 100)
-    td.create_plots_for_alphas([1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1])
+    # td.create_plots_for_alphas([1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1])
+    sarsa = Sarsa(mdp, epsilon=0.1, alpha=1e-4, train_episodes=100)
+    sarsa.learn()
