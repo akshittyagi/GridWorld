@@ -130,12 +130,14 @@ class Sarsa(TD):
         for action, probability in action_array:
             prev_proba += probability
             if random_number <= prev_proba:
-                return action + 1
+                return action + 2
 
     def learn(self):
         X, y = [], []
         X_ep, y_ep = [], []
         global_time_step, time_step = 0, 0
+        alpha = self.alpha
+        temperature = 1
         for episode in range(self.episodes):
             print "------------------------------"
             print "AT EPISODE: ", episode + 1
@@ -144,13 +146,14 @@ class Sarsa(TD):
             mse = 0
             time_step = 0
             while not self.mdp.isTerminalState(s_t) and time_step <= 1000:
+                alpha = alpha / temperature
                 s_t_1 = self.mdp.TransitionFunction(s_t, a_t)
                 r_t = self.mdp.RewardFunction(s_t, a_t, s_t_1)
                 a_t_1 = self.epsilon_greedy_action_selection(s_t_1)
                 s, s_ = map(self.mdp.getStateId, [s_t, s_t_1])
                 a, a_ = map(self.mdp.getActionId, [a_t, a_t_1])
                 q_td_error = r_t + self.gamma*(self.q_values[s_][a_]) - self.q_values[s][a]
-                self.q_values[s][a] += self.alpha*(q_td_error)
+                self.q_values[s][a] += alpha*(q_td_error)
                 s_t = s_t_1
                 a_t = a_t_1
                 if time_step % 100 == 0:
@@ -160,6 +163,7 @@ class Sarsa(TD):
                 global_time_step += 1
                 time_step += 1
                 mse += q_td_error**2
+                temperature += 0 
             mse = mse / time_step
             X_ep.append(episode)
             y_ep.append(mse)

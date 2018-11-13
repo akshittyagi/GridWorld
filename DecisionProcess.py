@@ -39,7 +39,7 @@ class MDP(object):
         return self.q_vals
     
     def getActionId(self, a_t):
-        return a_t - 1
+        return a_t - 2
 
     def initValueFunction(self):
         self.states = [0]*(GetStateNumber(4, 4, self.dimensions) + 1)
