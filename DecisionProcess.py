@@ -29,6 +29,12 @@ class MDP(object):
         self.data = []
         self.max_av_reward = -2**31
 
+    def init_q_function(self):
+        pass
+    
+    def getActionId(self):
+        pass
+        
     def initValueFunction(self):
         self.states = [0]*(GetStateNumber(4, 4, self.dimensions) + 1)
         return self.states
