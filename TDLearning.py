@@ -16,7 +16,7 @@ from Board import Board
 
 class TD(object):
     '''TD Eval and Learning'''
-    def __init__(self, mdp, num_training_episodes, num_eval_episodes, alpha=0.01, policy='uniform'):
+    def __init__(self, mdp, num_training_episodes=100, num_eval_episodes=100, alpha=0.01, policy='uniform'):
         '''Initialising from another MDP'''
         self.mdp = mdp
         self.num_train = num_training_episodes
@@ -108,6 +108,44 @@ class TD(object):
         X = np.log(np.array(X))/np.log(10)
         plt.plot(X, y)
         plt.show()
+
+class Sarsa(TD):
+    '''Sarsa docstring'''
+    def __init__(self, mdp, epsilon, alpha, train_episodes):
+        super(Sarsa, self).__init__(mdp, alpha=alpha)
+        self.episodes = train_episodes
+        self.epsilon = epsilon
+        self.q_values = self.mdp.init_q_function()
+        self.gamma = self.mdp.gamma
+
+    def epsilon_greedy_action_selection(self, state):
+        s = self.mdp.getStateId(state)
+        q_values = np.array(self.q_values[s])
+        arg_max = np.argmax(q_values)
+        proba = [self.epsilon/len(q_values)]*len(q_values)
+        proba[arg_max] += 1 - self.epsilon
+        random_number = 1.0*random.randint(0,99)/100
+        action_array = sorted(zip(np.arange(len(proba)), proba), key=lambda x: x[1], reverse=True)
+        prev_proba = 0
+        for action, probability in action_array:
+            prev_proba += probability
+            if random_number <= prev_proba:
+                return action
+
+    def learn(self):
+        for episode in range(self.episodes):
+            s_t = self.mdp.getInitialState()
+            a_t = self.epsilon_greedy_action_selection(s_t)
+            while not self.mdp.isTerminalState(s_t):
+                s_t_1 = self.mdp.TransitionFunction(s_t, a_t)
+                r_t = self.mdp.RewardFunction(s_t, a_t, s_t_1)
+                a_t_1 = self.epsilon_greedy_action_selection(s_t_1)
+                s, s_ = map(self.mdp.getStateId, [s_t, s_t_1])
+                a, a_ = map(self.mdp.getActionId, [a_t, a_t_1])
+                self.q_values[s][a] += self.alpha*(r_t + self.gamma*(self.q_values[s_][a_]) - self.q_values[s][a])
+                s_t = s_t_1
+                a_t = a_t_1
+
 
 if __name__ == "__main__":
     board = Board(5)
