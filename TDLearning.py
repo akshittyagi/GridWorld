@@ -119,19 +119,6 @@ class Sarsa(TD):
         self.gamma = self.mdp.gamma
 
     def epsilon_greedy_action_selection(self, state, temperature=1):
-        # s = self.mdp.getStateId(state)
-        # q_values = self.q_values[s]
-        # arg_max = np.argmax(q_values)
-        # epsilon = self.epsilon / temperature
-        # proba = [epsilon/len(q_values)]*len(q_values)
-        # proba[arg_max] += 1 - epsilon
-        # random_number = 1.0*random.randint(0,99)/100
-        # action_array = sorted(zip(np.arange(len(proba)), proba), key=lambda x: x[1], reverse=True)
-        # prev_proba = 0
-        # for action, probability in action_array:
-        #     prev_proba += probability
-        #     if random_number <= prev_proba:
-        #         return action + 2
         random_number = 1.0*random.randint(0,99)/100
         epsilon = self.epsilon / temperature
         s = self.mdp.getStateId(state)
@@ -150,15 +137,16 @@ class Sarsa(TD):
             return action
 
 
-    def learn(self):
+    def learn(self, plot=False, debug=False):
         X, y = [], []
         X_ep, y_ep = [], []
         global_time_step, time_step = 0, 0
         alpha = self.alpha
         temperature = 1
         for episode in range(self.episodes):
-            # print "------------------------------"
-            # print "AT EPISODE: ", episode + 1
+            if debug:
+                print "------------------------------"
+                print "AT EPISODE: ", episode + 1
             s_t = self.mdp.getInitialState()
             a_t = self.epsilon_greedy_action_selection(s_t)
             mse = 0
@@ -184,10 +172,12 @@ class Sarsa(TD):
             mse = mse / time_step
             X_ep.append(episode)
             y_ep.append(g)
-            # print "Return:  ", g
-            # print "------------------------------"
-        # plt.plot(X_ep, y_ep)
-        # plt.show()
+            if debug:
+                print "Return:  ", g
+                print "------------------------------"
+        if plot:
+            plt.plot(X_ep, y_ep)
+            plt.show()
         return X_ep, y_ep
         
 if __name__ == "__main__":
@@ -196,7 +186,6 @@ if __name__ == "__main__":
     td = TD(mdp, 100, 100)
     num_trials = 1000
     num_training_episodes = 100
-    # td.create_plots_for_alphas([1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1])
     X = np.arange(num_training_episodes)
     Y = []
     for trial in range(num_trials):
@@ -214,5 +203,3 @@ if __name__ == "__main__":
     Y_diff = np.sqrt(Y_diff)
     plt.errorbar(X, Y_mean, yerr=Y_diff, fmt='o')
     plt.show()
-    
-
