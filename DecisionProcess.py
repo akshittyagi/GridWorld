@@ -33,8 +33,6 @@ class MDP(object):
         self.q_vals = []
         for state in range(GetStateNumber(4, 4, self.dimensions) + 1):
             actions = np.random.uniform(0, 100, 3)
-            normalization = np.sum(actions)
-            actions = actions / normalization
             self.q_vals.append(actions)
         return self.q_vals
     
