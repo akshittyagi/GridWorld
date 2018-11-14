@@ -118,19 +118,37 @@ class Sarsa(TD):
         self.q_values = self.mdp.init_q_function()
         self.gamma = self.mdp.gamma
 
-    def epsilon_greedy_action_selection(self, state):
-        s = self.mdp.getStateId(state)
-        q_values = np.array(self.q_values[s])
-        arg_max = np.argmax(q_values)
-        proba = [self.epsilon/len(q_values)]*len(q_values)
-        proba[arg_max] += 1 - self.epsilon
+    def epsilon_greedy_action_selection(self, state, temperature=1):
+        # s = self.mdp.getStateId(state)
+        # q_values = self.q_values[s]
+        # arg_max = np.argmax(q_values)
+        # epsilon = self.epsilon / temperature
+        # proba = [epsilon/len(q_values)]*len(q_values)
+        # proba[arg_max] += 1 - epsilon
+        # random_number = 1.0*random.randint(0,99)/100
+        # action_array = sorted(zip(np.arange(len(proba)), proba), key=lambda x: x[1], reverse=True)
+        # prev_proba = 0
+        # for action, probability in action_array:
+        #     prev_proba += probability
+        #     if random_number <= prev_proba:
+        #         return action + 2
         random_number = 1.0*random.randint(0,99)/100
-        action_array = sorted(zip(np.arange(len(proba)), proba), key=lambda x: x[1], reverse=True)
-        prev_proba = 0
-        for action, probability in action_array:
-            prev_proba += probability
-            if random_number <= prev_proba:
-                return action + 2
+        epsilon = self.epsilon / temperature
+        s = self.mdp.getStateId(state)
+        q_values = self.q_values[s]
+        if 1 - epsilon >= random_number:
+            '''Select uniformly from the set of values argmax(q_values[s, ... ])'''
+            arg_max = np.argwhere(q_values == np.amax(q_values))
+            coin_toss = random.randint(0, len(arg_max) - 1)
+            argmax = arg_max[coin_toss]
+            action = int(argmax) + 2
+            return action
+        else:
+            '''Select uniformly randomly from the set of actions'''
+            coin_toss = random.randint(0, len(q_values) - 1)
+            action = coin_toss + 2
+            return action
+
 
     def learn(self):
         X, y = [], []
@@ -139,49 +157,62 @@ class Sarsa(TD):
         alpha = self.alpha
         temperature = 1
         for episode in range(self.episodes):
-            print "------------------------------"
-            print "AT EPISODE: ", episode + 1
+            # print "------------------------------"
+            # print "AT EPISODE: ", episode + 1
             s_t = self.mdp.getInitialState()
             a_t = self.epsilon_greedy_action_selection(s_t)
             mse = 0
             time_step = 0
-            while not self.mdp.isTerminalState(s_t) and time_step <= 1000:
+            temperature = 1
+            g = 0
+            while not self.mdp.isTerminalState(s_t) and time_step <= 20000:
                 alpha = alpha / temperature
                 s_t_1 = self.mdp.TransitionFunction(s_t, a_t)
                 r_t = self.mdp.RewardFunction(s_t, a_t, s_t_1)
-                a_t_1 = self.epsilon_greedy_action_selection(s_t_1)
+                a_t_1 = self.epsilon_greedy_action_selection(s_t_1, temperature=temperature)
                 s, s_ = map(self.mdp.getStateId, [s_t, s_t_1])
                 a, a_ = map(self.mdp.getActionId, [a_t, a_t_1])
                 q_td_error = r_t + self.gamma*(self.q_values[s_][a_]) - self.q_values[s][a]
                 self.q_values[s][a] += alpha*(q_td_error)
                 s_t = s_t_1
                 a_t = a_t_1
-                if time_step % 100 == 0:
-                    print "SQ TD ERROR: ", q_td_error**2
-                X.append(global_time_step)
-                y.append(q_td_error**2)
+                g = g + r_t*(self.gamma**time_step)
                 global_time_step += 1
                 time_step += 1
                 mse += q_td_error**2
-                temperature += 0 
+                temperature = global_time_step**(1/4)
             mse = mse / time_step
             X_ep.append(episode)
-            y_ep.append(mse)
-            print "AV MSE: ", mse
-            print "------------------------------"
-        
-        plt.plot(X, y)
-        plt.show()
-        plt.clf()
-        plt.cla()
-        plt.close()
-        plt.plot(X_ep, y_ep)
-        plt.show()
+            y_ep.append(g)
+            # print "Return:  ", g
+            # print "------------------------------"
+        # plt.plot(X_ep, y_ep)
+        # plt.show()
+        return X_ep, y_ep
         
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     td = TD(mdp, 100, 100)
+    num_trials = 1000
+    num_training_episodes = 100
     # td.create_plots_for_alphas([1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1])
-    sarsa = Sarsa(mdp, epsilon=0.1, alpha=1e-4, train_episodes=100)
-    sarsa.learn()
+    X = np.arange(num_training_episodes)
+    Y = []
+    for trial in range(num_trials):
+        print "AT TRIAL: ", trial + 1
+        sarsa = Sarsa(mdp, epsilon=0.1, alpha=1e-1, train_episodes=num_training_episodes)
+        _, y = sarsa.learn()
+        Y.append(y)
+    Y = np.array(Y)
+    Y_mean = np.sum(Y, axis=0)
+    Y_mean = Y_mean/num_trials
+    Y_diff = np.repeat(Y_mean.reshape(1, num_training_episodes), num_trials, axis=0)    
+    Y_diff = Y - Y_diff
+    Y_diff = Y_diff ** 2
+    Y_diff = np.sum(Y_diff, axis=0) / num_trials
+    Y_diff = np.sqrt(Y_diff)
+    plt.errorbar(X, Y_mean, yerr=Y_diff, fmt='o')
+    plt.show()
+    
+
