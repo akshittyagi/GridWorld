@@ -137,7 +137,7 @@ class Sarsa(TD):
             return action
 
 
-    def learn(self, plot=False, debug=False):
+    def learn(self, reduction_factor=4, plot=False, debug=False):
         X, y = [], []
         X_ep, y_ep = [], []
         global_time_step, time_step = 0, 0
@@ -168,7 +168,7 @@ class Sarsa(TD):
                 global_time_step += 1
                 time_step += 1
                 mse += q_td_error**2
-                temperature = global_time_step**(1/4)
+                temperature = global_time_step**(1.0/reduction_factor)
             mse = mse / time_step
             X_ep.append(episode)
             y_ep.append(g)
@@ -178,20 +178,51 @@ class Sarsa(TD):
         if plot:
             plt.plot(X_ep, y_ep)
             plt.show()
-        return X_ep, y_ep
-        
+        return X_ep, y_ep, np.sum(np.array(y_ep))*1.0/len(y_ep)
+
+def get_hyperparams(range_of_param, interval, multiplicative=True):
+    start, end = range_of_param
+    ret = []
+    while(start <= end):
+        ret.append(start)
+        if multiplicative:
+            start *= interval
+        else:
+            start += interval
+    return ret
+
 if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     td = TD(mdp, 100, 100)
-    num_trials = 1000
+    num_trials = 50
     num_training_episodes = 100
     X = np.arange(num_training_episodes)
     Y = []
+
+    '''HyperParameter Search'''
+    alphas = get_hyperparams(range_of_param=[1e-3, 1e-1], interval=10, multiplicative=True)
+    epsilons = get_hyperparams(range_of_param=[1e-2, 1e-1], interval=0.01, multiplicative=False)
+    reduction_factors = get_hyperparams(range_of_param=[3,10], interval=1, multiplicative=False)
+    G = -2**31
+    params = []
+    for alpha in alphas:
+        for epsilon in epsilons:
+            for reduction_factor in reduction_factors:
+                print "RETURN for alpha", str(alpha), " epsilon ", str(epsilon), " reductionFactor ", str(reduction_factor), " : "
+                sarsa = Sarsa(mdp, epsilon=epsilon, alpha=alpha, train_episodes=num_training_episodes)
+                _, y, g = sarsa.learn(reduction_factor=reduction_factor)
+                print g
+                if G < g:
+                    G = g
+                    params = [alpha, epsilon, reduction_factor]
+                    print "BEST PARAMS: "
+                    print params
+
     for trial in range(num_trials):
         print "AT TRIAL: ", trial + 1
-        sarsa = Sarsa(mdp, epsilon=0.1, alpha=1e-1, train_episodes=num_training_episodes)
-        _, y = sarsa.learn()
+        sarsa = Sarsa(mdp, epsilon=params[1], alpha=params[0], train_episodes=num_training_episodes)
+        _, y, _ = sarsa.learn(reduction_factor=params[2])
         Y.append(y)
     Y = np.array(Y)
     Y_mean = np.sum(Y, axis=0)
