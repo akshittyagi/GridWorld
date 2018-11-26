@@ -167,7 +167,7 @@ class Sarsa(TD):
                 global_time_step += 1
                 time_step += 1
                 mse += q_td_error**2
-                temperature = global_time_step**(1.0/reduction_factor)
+                # temperature = global_time_step**(1.0/reduction_factor)
             mse = mse / time_step
             X_ep.append(episode)
             y_ep.append(g)
@@ -235,7 +235,7 @@ class Qlearning(TD):
                 global_time_step += 1
                 time_step += 1
                 mse += q_td_error**2
-                temperature = global_time_step**(1.0/reduction_factor)
+                # temperature = global_time_step**(1.0/reduction_factor)
             mse = mse / time_step
             X_ep.append(episode)
             y_ep.append(g)
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     td = TD(mdp, 100, 100)
-    num_trials = 100
+    num_trials = 1000
     num_training_episodes = 100
     hyperparam_search = False
     switch_sarsa = False
@@ -305,7 +305,7 @@ if __name__ == "__main__":
    
     if not hyperparam_search:
         #alpha, epsilon, reduction_factor: alpha = alpha/(temp**red_fac)
-        params = [6e-1, 9e-1, 6]
+        params = [1e-1, 1e-1, 2]
 
     for trial in range(num_trials):
         print "AT TRIAL: ", trial + 1
