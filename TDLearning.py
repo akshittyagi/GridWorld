@@ -179,6 +179,304 @@ class Sarsa(TD):
             plt.show()
         return X_ep, y_ep, np.sum(np.array(y_ep))*1.0/len(y_ep)
 
+class REINF(TD):
+    '''Sarsa docstring'''
+    def __init__(self, mdp, epsilon, alpha, train_episodes):
+        super(REINF, self).__init__(mdp, alpha=alpha)
+        self.episodes = train_episodes
+        self.epsilon = epsilon
+        self.q_values = self.mdp.init_q_function()
+        self.gamma = self.mdp.gamma
+
+    def epsilon_greedy_action_selection(self, state, temperature=1):
+        random_number = 1.0*random.randint(0,99)/100
+        epsilon = self.epsilon / temperature
+        s = self.mdp.getStateId(state)
+        q_values = self.q_values[s]
+        if 1 - epsilon >= random_number:
+            '''Select uniformly from the set of values argmax(q_values[s, ... ])'''
+            arg_max = np.argwhere(q_values == np.amax(q_values))
+            coin_toss = random.randint(0, len(arg_max) - 1)
+            argmax = arg_max[coin_toss]
+            action = int(argmax) + 2
+            return action
+        else:
+            '''Select uniformly randomly from the set of actions'''
+            coin_toss = random.randint(0, len(q_values) - 1)
+            action = coin_toss + 2
+            return action
+
+    def learn(self, reduction_factor=4, plot=False, debug=False):
+        X, y = [], []
+        X_ep, y_ep = [], []
+        global_time_step, time_step = 0, 0
+        alpha = self.alpha
+        temperature = 1
+        for episode in range(self.episodes):
+            if debug:
+                print "------------------------------"
+                print "AT EPISODE: ", episode + 1
+            s_t = self.mdp.getInitialState()
+            a_t = self.epsilon_greedy_action_selection(s_t)
+            mse = 0
+            time_step = 0
+            temperature = 1
+            g = 0
+            #Approximation : dlnpi = 1
+            while not self.mdp.isTerminalState(s_t) and time_step <= 20000:
+                alpha = alpha / temperature
+                s_t_1 = self.mdp.TransitionFunction(s_t, a_t)
+                r_t = self.mdp.RewardFunction(s_t, a_t, s_t_1)
+                a_t_1 = self.epsilon_greedy_action_selection(s_t_1, temperature=temperature)
+                s, s_ = map(self.mdp.getStateId, [s_t, s_t_1])
+                a, a_ = map(self.mdp.getActionId, [a_t, a_t_1])
+                q_td_error = r_t + self.gamma*(self.q_values[s_][a_]) - self.q_values[s][a]
+                self.q_values[s][a] += alpha*(q_td_error + g - r_t)
+                s_t = s_t_1
+                a_t = a_t_1
+                g = g + r_t*(self.gamma**time_step)
+                global_time_step += 1
+                time_step += 1
+                mse += q_td_error**2
+                # temperature = global_time_step**(1.0/reduction_factor)
+            mse = mse / time_step
+            X_ep.append(episode)
+            y_ep.append(g)
+            if debug:
+                print "Return:  ", g
+                print "------------------------------"
+        if plot:
+            plt.plot(X_ep, y_ep)
+            plt.show()
+        return X_ep, y_ep, np.sum(np.array(y_ep))*1.0/len(y_ep)
+
+class QLambdaAC(TD):
+    '''QLearning docstring'''
+    def __init__(self, mdp, epsilon, alpha, train_episodes):
+        super(QLambdaAC, self).__init__(mdp, alpha=alpha)
+        self.episodes = train_episodes
+        self.epsilon = epsilon
+        self.q_values = self.mdp.init_q_function()
+        self.gamma = self.mdp.gamma
+        print "QLAMBDA AC"
+
+    def epsilon_greedy_action_selection(self, state, temperature=1):
+        random_number = 1.0*random.randint(0,99)/100
+        epsilon = self.epsilon / temperature
+        s = self.mdp.getStateId(state)
+        q_values = self.q_values[s]
+        if 1 - epsilon >= random_number:
+            '''Select uniformly from the set of values argmax(q_values[s, ... ])'''
+            arg_max = np.argwhere(q_values == np.amax(q_values))
+            coin_toss = random.randint(0, len(arg_max) - 1)
+            argmax = arg_max[coin_toss]
+            action = int(argmax) + 2
+            return action
+        else:
+            '''Select uniformly randomly from the set of actions'''
+            coin_toss = random.randint(0, len(q_values) - 1)
+            action = coin_toss + 2
+            return action
+
+    def learn(self, reduction_factor=4, plot=False, debug=False):
+        X, y = [], []
+        X_ep, y_ep = [], []
+        global_time_step, time_step = 0, 0
+        alpha = self.alpha
+        temperature = 1
+        lamb = 0.9
+        for episode in range(self.episodes):
+            if debug:
+                print "------------------------------"
+                print "AT EPISODE: ", episode + 1
+            s_t = self.mdp.getInitialState()
+            mse = 0
+            time_step = 0
+            temperature = 1.0
+            g = 0
+            
+            e_trace_1 = self.mdp.init_e_function()
+            e_trace_2 = self.mdp.init_e_function()
+
+            while not self.mdp.isTerminalState(s_t) and time_step <= 20000:
+                alpha = alpha / temperature
+                a_t = self.epsilon_greedy_action_selection(s_t, temperature=temperature)
+                s_t_1 = self.mdp.TransitionFunction(s_t, a_t)
+                r_t = self.mdp.RewardFunction(s_t, a_t, s_t_1)
+                s, s_ = map(self.mdp.getStateId, [s_t, s_t_1])
+                a = self.mdp.getActionId(a_t)
+                e_trace_1[s][a] = lamb*self.gamma*e_trace_1[s][a] + 1
+                q_td_error = r_t + self.gamma*(np.amax(self.q_values[s_])) - self.q_values[s][a]
+                self.q_values[s][a] += alpha*(q_td_error)*e_trace_1[s][a]
+                e_trace_2[s][a] = e_trace_2[s][a]*self.gamma*lamb + 1
+                s_t = s_t_1
+                g = g + r_t*(self.gamma**time_step)
+                global_time_step += 1
+                time_step += 1
+                mse += q_td_error**2
+                # temperature = global_time_step**(1.0/reduction_factor)
+            mse = mse / time_step
+            X_ep.append(episode)
+            y_ep.append(g)
+            if debug:
+                print "Return:  ", g
+                print "------------------------------"
+        if plot:
+            plt.plot(X_ep, y_ep)
+            plt.show()
+        return X_ep, y_ep, np.sum(np.array(y_ep))*1.0/len(y_ep)
+
+
+class SarsaLambda(TD):
+    '''Sarsa docstring'''
+    def __init__(self, mdp, epsilon, alpha, train_episodes):
+        super(SarsaLambda, self).__init__(mdp, alpha=alpha)
+        self.episodes = train_episodes
+        self.epsilon = epsilon
+        self.q_values = self.mdp.init_q_function()
+        self.gamma = self.mdp.gamma
+        print "SARSA LAMBDA"
+
+    def epsilon_greedy_action_selection(self, state, temperature=1):
+        random_number = 1.0*random.randint(0,99)/100
+        epsilon = self.epsilon / temperature
+        s = self.mdp.getStateId(state)
+        q_values = self.q_values[s]
+        if 1 - epsilon >= random_number:
+            '''Select uniformly from the set of values argmax(q_values[s, ... ])'''
+            arg_max = np.argwhere(q_values == np.amax(q_values))
+            coin_toss = random.randint(0, len(arg_max) - 1)
+            argmax = arg_max[coin_toss]
+            action = int(argmax) + 2
+            return action
+        else:
+            '''Select uniformly randomly from the set of actions'''
+            coin_toss = random.randint(0, len(q_values) - 1)
+            action = coin_toss + 2
+            return action
+
+    def learn(self, reduction_factor=4, plot=False, debug=False):
+        X, y = [], []
+        X_ep, y_ep = [], []
+        global_time_step, time_step = 0, 0
+        alpha = self.alpha
+        temperature = 1
+        lamb = 0.9
+        for episode in range(self.episodes):
+            if debug:
+                print "------------------------------"
+                print "AT EPISODE: ", episode + 1
+            s_t = self.mdp.getInitialState()
+            a_t = self.epsilon_greedy_action_selection(s_t)
+            mse = 0
+            time_step = 0
+            temperature = 1
+            g = 0
+
+            e_trace = self.mdp.init_e_function()
+            
+            while not self.mdp.isTerminalState(s_t) and time_step <= 20000:
+                alpha = alpha / temperature
+                s_t_1 = self.mdp.TransitionFunction(s_t, a_t)
+                r_t = self.mdp.RewardFunction(s_t, a_t, s_t_1)
+                a_t_1 = self.epsilon_greedy_action_selection(s_t_1, temperature=temperature)
+                s, s_ = map(self.mdp.getStateId, [s_t, s_t_1])
+                a, a_ = map(self.mdp.getActionId, [a_t, a_t_1])
+                e_trace[s][a] = self.gamma*lamb*e_trace[s][a] + 1
+                q_td_error = r_t + self.gamma*(self.q_values[s_][a_]) - self.q_values[s][a]
+                self.q_values[s][a] += alpha*(q_td_error)*e_trace[s][a]
+                s_t = s_t_1
+                a_t = a_t_1
+                g = g + r_t*(self.gamma**time_step)
+                global_time_step += 1
+                time_step += 1
+                mse += q_td_error**2
+                # temperature = global_time_step**(1.0/reduction_factor)
+            mse = mse / time_step
+            X_ep.append(episode)
+            y_ep.append(g)
+            if debug:
+                print "Return:  ", g
+                print "------------------------------"
+        if plot:
+            plt.plot(X_ep, y_ep)
+            plt.show()
+        return X_ep, y_ep, np.sum(np.array(y_ep))*1.0/len(y_ep)
+
+class QLambda(TD):
+    '''QLearning docstring'''
+    def __init__(self, mdp, epsilon, alpha, train_episodes):
+        super(QLambda, self).__init__(mdp, alpha=alpha)
+        self.episodes = train_episodes
+        self.epsilon = epsilon
+        self.q_values = self.mdp.init_q_function()
+        self.gamma = self.mdp.gamma
+        print "QLAMBDA"
+
+    def epsilon_greedy_action_selection(self, state, temperature=1):
+        random_number = 1.0*random.randint(0,99)/100
+        epsilon = self.epsilon / temperature
+        s = self.mdp.getStateId(state)
+        q_values = self.q_values[s]
+        if 1 - epsilon >= random_number:
+            '''Select uniformly from the set of values argmax(q_values[s, ... ])'''
+            arg_max = np.argwhere(q_values == np.amax(q_values))
+            coin_toss = random.randint(0, len(arg_max) - 1)
+            argmax = arg_max[coin_toss]
+            action = int(argmax) + 2
+            return action
+        else:
+            '''Select uniformly randomly from the set of actions'''
+            coin_toss = random.randint(0, len(q_values) - 1)
+            action = coin_toss + 2
+            return action
+
+    def learn(self, reduction_factor=4, plot=False, debug=False):
+        X, y = [], []
+        X_ep, y_ep = [], []
+        global_time_step, time_step = 0, 0
+        alpha = self.alpha
+        temperature = 1
+        lamb = 0.9
+        for episode in range(self.episodes):
+            if debug:
+                print "------------------------------"
+                print "AT EPISODE: ", episode + 1
+            s_t = self.mdp.getInitialState()
+            mse = 0
+            time_step = 0
+            temperature = 1.0
+            g = 0
+            
+            e_trace = self.mdp.init_e_function()
+
+            while not self.mdp.isTerminalState(s_t) and time_step <= 20000:
+                alpha = alpha / temperature
+                a_t = self.epsilon_greedy_action_selection(s_t, temperature=temperature)
+                s_t_1 = self.mdp.TransitionFunction(s_t, a_t)
+                r_t = self.mdp.RewardFunction(s_t, a_t, s_t_1)
+                s, s_ = map(self.mdp.getStateId, [s_t, s_t_1])
+                a = self.mdp.getActionId(a_t)
+                e_trace[s][a] += lamb*self.gamma*e_trace[s][a] + 1
+                q_td_error = r_t + self.gamma*(np.amax(self.q_values[s_])) - self.q_values[s][a]
+                self.q_values[s][a] += alpha*(q_td_error)*e_trace[s][a]
+                s_t = s_t_1
+                g = g + r_t*(self.gamma**time_step)
+                global_time_step += 1
+                time_step += 1
+                mse += q_td_error**2
+                # temperature = global_time_step**(1.0/reduction_factor)
+            mse = mse / time_step
+            X_ep.append(episode)
+            y_ep.append(g)
+            if debug:
+                print "Return:  ", g
+                print "------------------------------"
+        if plot:
+            plt.plot(X_ep, y_ep)
+            plt.show()
+        return X_ep, y_ep, np.sum(np.array(y_ep))*1.0/len(y_ep)
+
 class Qlearning(TD):
     '''QLearning docstring'''
     def __init__(self, mdp, epsilon, alpha, train_episodes):
@@ -263,10 +561,10 @@ if __name__ == "__main__":
     board = Board(5)
     mdp = MDP(board, 0.8, 0.05, 0.05, 0.1, 0.9, False)
     td = TD(mdp, 100, 100)
-    num_trials = 1000
+    num_trials = 10
     num_training_episodes = 100
     hyperparam_search = False
-    switch_sarsa = False
+    switch_sarsa = True
     X = np.arange(num_training_episodes)
     Y = []
 
@@ -310,10 +608,10 @@ if __name__ == "__main__":
     for trial in range(num_trials):
         print "AT TRIAL: ", trial + 1
         if switch_sarsa:
-            sarsa = Sarsa(mdp, epsilon=params[1], alpha=params[0], train_episodes=num_training_episodes)
+            sarsa = REINF(mdp, epsilon=params[1], alpha=params[0], train_episodes=num_training_episodes)
             _, y, _ = sarsa.learn(reduction_factor=params[2])
         else:
-            qlearn = Qlearning(mdp, epsilon=params[1], alpha=params[0], train_episodes=num_training_episodes)
+            qlearn = QLambdaAC(mdp, epsilon=params[1], alpha=params[0], train_episodes=num_training_episodes)
             _, y, _ = qlearn.learn(reduction_factor=params[2], plot=False, debug=False)
         Y.append(y)
     Y = np.array(Y)
