@@ -36,6 +36,14 @@ class MDP(object):
             self.q_vals.append(actions)
         return self.q_vals
     
+    def init_e_function(self):
+        self.e_vals = []
+        for state in range(GetStateNumber(4, 4, self.dimensions) + 1):
+            actions = [0,0,0]
+            self.e_vals.append(actions)
+        tmp = self.e_vals
+        return tmp
+    
     def getActionId(self, a_t):
         return a_t - 2
 
